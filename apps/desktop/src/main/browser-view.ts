@@ -113,6 +113,20 @@ const TOP_UI_HEIGHT = 36 + 44
 
 const SETTINGS_PAGE_PATH = join(__dirname, '../renderer/settings.html')
 const DEVTOOLS_PREF_PATH = join(app.getPath('userData'), 'devtools-preferences.json')
+const INTERNAL_TAB_FAVICON =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+      <defs>
+        <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#0f766e"/>
+          <stop offset="100%" stop-color="#34b3a0"/>
+        </linearGradient>
+      </defs>
+      <rect x="4" y="4" width="56" height="56" rx="16" fill="url(#g)"/>
+      <path d="M22 20h8l12 24h-8l-2-4h-10l-2 4h-8l10-24zm5 14h4l-2-5-2 5z" fill="#f7f9fb"/>
+    </svg>`
+  )
 
 function isSettingsUrl(url?: string) {
   return url === SETTINGS_TAB_URL
@@ -125,12 +139,109 @@ function getDefaultNewTabUrl() {
 function loadSettingsPage(tab: TabState) {
   tab.isSettings = true
   tab.url = SETTINGS_TAB_URL
+  tab.title = 'Settings'
+  tab.favicon = INTERNAL_TAB_FAVICON
   const devUrl = process.env['ELECTRON_RENDERER_URL']
   if (devUrl) {
     tab.view.webContents.loadURL(new URL('settings.html', devUrl).toString())
   } else {
     tab.view.webContents.loadFile(SETTINGS_PAGE_PATH)
   }
+  broadcastState()
+}
+
+function shouldUseInternalTabIcon(tab: TabState) {
+  return tab.isSettings || tab.url.startsWith(RENDER_PAGE_PREFIX)
+}
+
+function normalizeFaviconCandidate(pageUrl: string, candidate?: string | null): string {
+  const raw = String(candidate ?? '').trim()
+  if (!raw) return ''
+
+  if (
+    raw.startsWith('data:') ||
+    raw.startsWith('blob:') ||
+    raw.startsWith('http://') ||
+    raw.startsWith('https://') ||
+    raw.startsWith('file://')
+  ) {
+    return raw
+  }
+
+  try {
+    if (raw.startsWith('//')) {
+      const page = new URL(pageUrl)
+      return `${page.protocol}${raw}`
+    }
+    return new URL(raw, pageUrl).toString()
+  } catch {
+    return ''
+  }
+}
+
+function buildOriginFaviconUrl(pageUrl: string): string {
+  try {
+    const url = new URL(pageUrl)
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return ''
+    return new URL('/favicon.ico', url.origin).toString()
+  } catch {
+    return ''
+  }
+}
+
+function setTabFavicon(tab: TabState, favicon: string) {
+  if (tab.favicon === favicon) return
+  tab.favicon = favicon
+  broadcastState()
+}
+
+async function extractPageFaviconCandidates(tab: TabState): Promise<string[]> {
+  const wc = tab.view.webContents
+  if (wc.isDestroyed()) return []
+
+  try {
+    const result = await wc.executeJavaScript(
+      `(() => {
+        const links = Array.from(document.querySelectorAll('link[rel]'));
+        return links
+          .filter((link) => /(^|\\s)(icon|apple-touch-icon|mask-icon)(\\s|$)/i.test(link.rel || ''))
+          .map((link) => link.href || link.getAttribute('href') || '')
+          .filter(Boolean);
+      })()`,
+      true
+    )
+    return Array.isArray(result) ? result.map((item) => String(item || '')).filter(Boolean) : []
+  } catch {
+    return []
+  }
+}
+
+async function refreshTabFavicon(tab: TabState) {
+  if (shouldUseInternalTabIcon(tab)) {
+    setTabFavicon(tab, INTERNAL_TAB_FAVICON)
+    return
+  }
+
+  const wc = tab.view.webContents
+  if (wc.isDestroyed()) return
+
+  const currentUrl = wc.getURL() || tab.url
+  if (!currentUrl || currentUrl.startsWith('about:')) {
+    setTabFavicon(tab, '')
+    return
+  }
+
+  const currentDisplayedUrl = tab.url
+  const domCandidates = await extractPageFaviconCandidates(tab)
+  const normalized = domCandidates
+    .map((candidate) => normalizeFaviconCandidate(currentUrl, candidate))
+    .filter(Boolean)
+
+  const fallback = buildOriginFaviconUrl(currentUrl)
+  const nextFavicon = normalized[0] || fallback
+
+  if (tab.url !== currentDisplayedUrl) return
+  setTabFavicon(tab, nextFavicon)
 }
 
 function loadDevToolsMode(): DevToolsMode {
@@ -271,7 +382,7 @@ function createTab(url: string) {
   // 2. 导航状态
   wc.on('did-start-loading', () => {
     tab.isLoading = true
-    tab.favicon = ''
+    tab.favicon = shouldUseInternalTabIcon(tab) ? INTERNAL_TAB_FAVICON : ''
     applyPreferredColorScheme(tab, currentMode).catch(() => {})
     broadcastState()
   })
@@ -280,25 +391,33 @@ function createTab(url: string) {
     tab.isLoading = false
     broadcastState()
     emitUserDataActivity('load', tab.url)
+    void refreshTabFavicon(tab)
   })
 
   wc.on('did-navigate', (_event: Electron.Event, newUrl: string) => {
     tab.url = tab.isSettings ? SETTINGS_TAB_URL : newUrl
     broadcastState()
     emitUserDataActivity('navigate', tab.url)
+    void refreshTabFavicon(tab)
   })
 
   wc.on('did-navigate-in-page', (_event: Electron.Event, newUrl: string) => {
     tab.url = tab.isSettings ? SETTINGS_TAB_URL : newUrl
     broadcastState()
     emitUserDataActivity('navigate-in-page', tab.url)
+    void refreshTabFavicon(tab)
   })
 
   wc.on('page-favicon-updated', (_event: Electron.Event, favicons: string[]) => {
-    if (Array.isArray(favicons) && favicons.length > 0) {
-      tab.favicon = favicons[0] || ''
-      broadcastState()
+    if (!Array.isArray(favicons) || favicons.length === 0) return
+    const normalized = favicons
+      .map((candidate) => normalizeFaviconCandidate(wc.getURL() || tab.url, candidate))
+      .filter(Boolean)
+    if (normalized.length > 0) {
+      setTabFavicon(tab, normalized[0] || '')
+      return
     }
+    void refreshTabFavicon(tab)
   })
 
   wc.on('focus', () => {
@@ -316,6 +435,7 @@ function createTab(url: string) {
   wc.on('dom-ready', async () => {
     await applyThemeToTab(tab)
     const injected = await setTabIdOnPage(tab)
+    await refreshTabFavicon(tab)
     if (injected && tab.id === activeTabId && currentSessionId) {
       notifyDriverReattach().catch(console.error)
     }
