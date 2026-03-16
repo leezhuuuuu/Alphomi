@@ -1,5 +1,7 @@
 # Architecture Guide
 
+English | [简体中文](architecture.zh-CN.md)
+
 ## Design Goals
 
 Alphomi is built as a dual-stack monorepo with explicit runtime boundaries:

@@ -1,5 +1,7 @@
 # Testing Guide
 
+English | [简体中文](testing.zh-CN.md)
+
 ## Fast Validation
 
 ```bash

@@ -1,5 +1,7 @@
 # Release Guide
 
+English | [简体中文](release.zh-CN.md)
+
 ## Goal
 
 Ship one desktop installer while keeping source development open and modular.

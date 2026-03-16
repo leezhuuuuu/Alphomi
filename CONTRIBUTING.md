@@ -1,5 +1,7 @@
 # Contributing to Alphomi
 
+English | [简体中文](CONTRIBUTING.zh-CN.md)
+
 Thanks for helping build Alphomi.
 
 ## Before You Start

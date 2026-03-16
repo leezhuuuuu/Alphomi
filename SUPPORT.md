@@ -1,5 +1,7 @@
 # Support
 
+English | [简体中文](SUPPORT.zh-CN.md)
+
 ## Where to Ask for What
 
 - Bug reports: open a GitHub issue with reproduction steps

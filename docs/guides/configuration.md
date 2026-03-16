@@ -1,5 +1,7 @@
 # Configuration Guide
 
+English | [简体中文](configuration.zh-CN.md)
+
 ## Precedence
 
 Alphomi resolves configuration in this order:
