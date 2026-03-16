@@ -1,81 +1,52 @@
-import type { Page } from 'playwright';
-import { LocatorRecipe } from '../../types/protocol';
-import { loadConfigFromYaml } from '../../common/config';
+import type { Page } from 'playwright'
+import { loadConfigFromYaml } from '../../common/config'
+import { LocatorRecipe } from '../../types/protocol'
+import { AXNode, captureAxTree } from './ax-tree'
 
-loadConfigFromYaml('driver');
+loadConfigFromYaml('driver')
 
 const parseNonNegativeInt = (value: string | undefined, fallback: number): number => {
-  const parsed = value ? Number(value) : NaN;
-  if (!Number.isFinite(parsed)) return fallback;
-  const normalized = Math.floor(parsed);
-  if (normalized < 0) return fallback;
-  return normalized;
-};
+  const parsed = value ? Number(value) : NaN
+  if (!Number.isFinite(parsed)) return fallback
+  const normalized = Math.floor(parsed)
+  if (normalized < 0) return fallback
+  return normalized
+}
 
 // 获取配置并设置默认值
-const LIST_THRESHOLD = parseNonNegativeInt(process.env.SNAPSHOT_LIST_THRESHOLD, 10);
-const LIST_HEAD = parseNonNegativeInt(process.env.SNAPSHOT_LIST_HEAD, 5);
-const LIST_TAIL = parseNonNegativeInt(process.env.SNAPSHOT_LIST_TAIL, 2);
-
-// 完整复刻官方 AXNode 类型
-type AXNode = {
-  role: string;
-  name?: string;
-  value?: string | number;
-  description?: string;
-  keyshortcuts?: string;
-  roledescription?: string;
-  valuetext?: string;
-  disabled?: boolean;
-  expanded?: boolean;
-  focused?: boolean;
-  modal?: boolean;
-  multiline?: boolean;
-  multiselectable?: boolean;
-  readonly?: boolean;
-  required?: boolean;
-  selected?: boolean;
-  checked?: boolean | 'mixed';
-  pressed?: boolean | 'mixed';
-  level?: number;
-  valuemin?: number;
-  valuemax?: number;
-  autocomplete?: string;
-  haspopup?: string;
-  invalid?: string;
-  orientation?: string;
-  children?: AXNode[];
-};
+const LIST_THRESHOLD = parseNonNegativeInt(process.env.SNAPSHOT_LIST_THRESHOLD, 10)
+const LIST_HEAD = parseNonNegativeInt(process.env.SNAPSHOT_LIST_HEAD, 5)
+const LIST_TAIL = parseNonNegativeInt(process.env.SNAPSHOT_LIST_TAIL, 2)
 
 export class Snapshotter {
-  private _refCounter = 0;
-  private readonly _refByIdentity = new Map<string, string>();
-  public readonly refs = new Map<string, LocatorRecipe>();
+  private _refCounter = 0
+  private readonly _refByIdentity = new Map<string, string>()
+  public readonly refs = new Map<string, LocatorRecipe>()
 
   constructor(private page: Page) {}
 
   async capture(full: boolean = false): Promise<string> {
-    this.refs.clear();
+    this.refs.clear()
 
     try {
-      const root = await (this.page as any).accessibility.snapshot({ interestingOnly: false });
-      if (!root) return 'No content';
+      const root = await captureAxTree(this.page)
+      if (!root) return 'No content'
 
-      const lines: string[] = [];
-      const identityUseCounter = new Map<string, number>();
-      const roleNameUseCounter = new Map<string, number>();
-      const seenRefIdentities = new Set<string>();
-      this._renderNode(root, 0, lines, full, [], identityUseCounter, roleNameUseCounter, seenRefIdentities);
+      const lines: string[] = []
+      const identityUseCounter = new Map<string, number>()
+      const roleNameUseCounter = new Map<string, number>()
+      const seenRefIdentities = new Set<string>()
+      this._renderNode(root, 0, lines, full, [], identityUseCounter, roleNameUseCounter, seenRefIdentities)
 
       for (const identity of Array.from(this._refByIdentity.keys())) {
         if (!seenRefIdentities.has(identity)) {
-          this._refByIdentity.delete(identity);
+          this._refByIdentity.delete(identity)
         }
       }
 
-      return lines.join('\n');
+      return lines.join('\n')
     } catch (e) {
-      return `Error capturing snapshot: ${e instanceof Error ? e.message : String(e)}`;
+      return `Error capturing snapshot: ${e instanceof Error ? e.message : String(e)}`
     }
   }
 

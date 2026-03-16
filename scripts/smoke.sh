@@ -55,6 +55,9 @@ fi
 echo "[smoke] running driver storage smoke..."
 node "$ROOT_DIR/test/driver-storage-smoke.mjs"
 
+echo "[smoke] running driver snapshot smoke..."
+node "$ROOT_DIR/test/driver-snapshot-smoke.mjs"
+
 echo "[smoke] running optional LLM file-edit E2E..."
 python3 "$ROOT_DIR/test/llm_apply_patch_e2e.py"
 

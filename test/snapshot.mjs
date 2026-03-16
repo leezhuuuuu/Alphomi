@@ -30,6 +30,76 @@ const url = args[0];
 const outputFile = args[1] || 'snapshot.txt';
 const outputPath = path.resolve(outputFile);
 
+function normalizeRole(role) {
+  if (role === 'RootWebArea') return 'WebArea';
+  if (role === 'StaticText') return 'text';
+  return role || 'generic';
+}
+
+function readScalar(value) {
+  return value?.value;
+}
+
+function readString(value) {
+  const scalar = readScalar(value);
+  if (scalar === undefined || scalar === null) return undefined;
+  return String(scalar);
+}
+
+function readBooleanish(value) {
+  const scalar = readScalar(value);
+  if (typeof scalar === 'boolean') return scalar;
+  if (scalar === 'true') return true;
+  if (scalar === 'false') return false;
+  return undefined;
+}
+
+function buildAxTree(nodes) {
+  const nodeMap = new Map(nodes.map((node) => [node.nodeId, node]));
+  const roots = nodes.filter((node) => !node.parentId || !nodeMap.has(node.parentId));
+  const root =
+    roots.find((node) => normalizeRole(readString(node.role)) === 'WebArea') ||
+    nodes.find((node) => normalizeRole(readString(node.role)) === 'WebArea') ||
+    nodes[0];
+
+  function visit(nodeId, stack = new Set()) {
+    const node = nodeMap.get(nodeId);
+    if (!node || stack.has(nodeId)) return null;
+    stack.add(nodeId);
+
+    const props = Object.fromEntries((node.properties || []).map((prop) => [prop.name.toLowerCase(), prop.value]));
+    const role = normalizeRole(readString(node.role));
+    const children = (node.childIds || []).map((childId) => visit(childId, stack)).filter(Boolean);
+
+    const axNode = {
+      role,
+      name: readString(node.name) || '',
+      value: readScalar(node.value),
+      disabled: readBooleanish(props.disabled),
+      checked: readScalar(props.checked),
+      focused: readBooleanish(props.focused),
+      expanded: readBooleanish(props.expanded),
+      level: readScalar(props.level),
+      children: children.length > 0 ? children : undefined,
+    };
+
+    stack.delete(nodeId);
+    return axNode;
+  }
+
+  return root ? visit(root.nodeId) : null;
+}
+
+async function captureSnapshotTree(page) {
+  if (page.accessibility && typeof page.accessibility.snapshot === 'function') {
+    return page.accessibility.snapshot({ interestingOnly: false });
+  }
+
+  const client = await page.context().newCDPSession(page);
+  const { nodes } = await client.send('Accessibility.getFullAXTree');
+  return buildAxTree(nodes || []);
+}
+
 async function main() {
   console.log(`🚀 启动浏览器...`);
   console.log(`🌐 访问: ${url}`);
@@ -61,7 +131,7 @@ async function main() {
 
     // 获取 accessibility snapshot
     console.log('📸 捕获页面快照...');
-    const snapshot = await page.accessibility.snapshot({ interestingOnly: false });
+    const snapshot = await captureSnapshotTree(page);
 
     if (!snapshot) {
       console.error('❌ 无法获取页面快照');
