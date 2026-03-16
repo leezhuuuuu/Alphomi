@@ -34,7 +34,6 @@ TYPING_ELAPSED_THRESHOLD = float(os.getenv("TYPING_ELAPSED_THRESHOLD", "0.2"))
 TYPING_BOOST_MAX = int(os.getenv("TYPING_BOOST_MAX", "20"))
 TYPING_SLEEP_SECONDS = float(os.getenv("TYPING_SLEEP_SECONDS", "0.05"))
 
-client = CustomLLMClient()
 THINK_BLOCK_RE = re.compile(r"<think>.*?</think>", re.IGNORECASE | re.DOTALL)
 
 
@@ -238,6 +237,7 @@ class StreamingWorkflow(BaseWorkflow):
 
                     current_tools_schema = self._get_tools_schema()
                     stream_error = False
+                    client = CustomLLMClient()
 
                     async for event in client.stream_chat_completion(
                         request_messages, tools=current_tools_schema

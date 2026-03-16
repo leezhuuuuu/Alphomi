@@ -20,6 +20,8 @@ export interface NavigationState {
   favicon?: string
 }
 
+export type LLMEndpointMode = 'auto' | 'chat_completions' | 'responses'
+
 // 扩展 Window 接口
 declare global {
   interface ImportMetaEnv {
@@ -74,6 +76,73 @@ declare global {
           }[]
         }[]
       >
+      getLLMSettings: () => Promise<{
+        activeProfileId: string | null
+        profiles: {
+          id: string
+          label: string
+          providerType: 'openai_compatible'
+          baseUrl: string
+          model: string
+          endpointMode: LLMEndpointMode
+          hasApiKey: boolean
+        }[]
+      }>
+      updateLLMSettings: (patch: {
+        activeProfileId?: string | null
+        profiles?: {
+          id?: string
+          label?: string
+          providerType?: 'openai_compatible'
+          baseUrl?: string
+          model?: string
+          endpointMode?: LLMEndpointMode
+          apiKey?: string
+        }[]
+      }) => Promise<{
+        activeProfileId: string | null
+        profiles: {
+          id: string
+          label: string
+          providerType: 'openai_compatible'
+          baseUrl: string
+          model: string
+          endpointMode: LLMEndpointMode
+          hasApiKey: boolean
+        }[]
+      }>
+      getEffectiveLLMSettings: (options?: { includeApiKey?: boolean }) => Promise<{
+        providerType: 'openai_compatible'
+        activeProfileId: string | null
+        activeProfileLabel: string | null
+        baseUrl: string
+        model: string
+        endpointMode: LLMEndpointMode
+        apiKey: string
+        hasApiKey: boolean
+        sources: {
+          baseUrl: 'environment' | 'user' | 'config' | 'default' | 'unset'
+          model: 'environment' | 'user' | 'config' | 'default' | 'unset'
+          endpointMode: 'environment' | 'user' | 'config' | 'default' | 'unset'
+          apiKey: 'environment' | 'user' | 'config' | 'default' | 'unset'
+        }
+      }>
+      testLLMSettings: (input?: {
+        profileId?: string | null
+        baseUrl?: string
+        model?: string
+        endpointMode?: LLMEndpointMode
+        apiKey?: string
+      }) => Promise<{
+        ok: boolean
+        statusCode: number | null
+        latencyMs: number
+        endpointMode: Exclude<LLMEndpointMode, 'auto'>
+        requestUrl: string
+        model: string
+        preview: string
+        error?: string
+      }>
       openMenu: (anchor: { x: number; y: number; width: number; height: number }) => void
       menuAction: (action: string) => Promise<{ zoomPercent?: number; closeMenu?: boolean }>
       getMenuState: () => Promise<{ zoomPercent: number; mode: 'light' | 'dark' }>

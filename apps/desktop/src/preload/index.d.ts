@@ -22,6 +22,46 @@ export interface NavigationState {
   favicon?: string
 }
 
+export type LLMEndpointMode = 'auto' | 'chat_completions' | 'responses'
+
+export type LLMProviderProfileView = {
+  id: string
+  label: string
+  providerType: 'openai_compatible'
+  baseUrl: string
+  model: string
+  endpointMode: LLMEndpointMode
+  hasApiKey: boolean
+}
+
+export type EffectiveLLMSettingsView = {
+  providerType: 'openai_compatible'
+  activeProfileId: string | null
+  activeProfileLabel: string | null
+  baseUrl: string
+  model: string
+  endpointMode: LLMEndpointMode
+  apiKey: string
+  hasApiKey: boolean
+  sources: {
+    baseUrl: 'environment' | 'user' | 'config' | 'default' | 'unset'
+    model: 'environment' | 'user' | 'config' | 'default' | 'unset'
+    endpointMode: 'environment' | 'user' | 'config' | 'default' | 'unset'
+    apiKey: 'environment' | 'user' | 'config' | 'default' | 'unset'
+  }
+}
+
+export type LLMConnectionTestResult = {
+  ok: boolean
+  statusCode: number | null
+  latencyMs: number
+  endpointMode: Exclude<LLMEndpointMode, 'auto'>
+  requestUrl: string
+  model: string
+  preview: string
+  error?: string
+}
+
 declare global {
   interface Window {
     electron: ElectronAPI & {
@@ -69,6 +109,33 @@ declare global {
           }[]
         }[]
       >
+      getLLMSettings: () => Promise<{
+        activeProfileId: string | null
+        profiles: LLMProviderProfileView[]
+      }>
+      updateLLMSettings: (patch: {
+        activeProfileId?: string | null
+        profiles?: {
+          id?: string
+          label?: string
+          providerType?: 'openai_compatible'
+          baseUrl?: string
+          model?: string
+          endpointMode?: LLMEndpointMode
+          apiKey?: string
+        }[]
+      }) => Promise<{
+        activeProfileId: string | null
+        profiles: LLMProviderProfileView[]
+      }>
+      getEffectiveLLMSettings: (options?: { includeApiKey?: boolean }) => Promise<EffectiveLLMSettingsView>
+      testLLMSettings: (input?: {
+        profileId?: string | null
+        baseUrl?: string
+        model?: string
+        endpointMode?: LLMEndpointMode
+        apiKey?: string
+      }) => Promise<LLMConnectionTestResult>
       // 新增导航控制
       goBack: () => void
       goForward: () => void

@@ -24,6 +24,12 @@ import { loadUserDataConfig, UserDataConfig } from './user-data-config'
 import { buildStorageState, loadStorageState, saveStorageState } from './storage-state'
 import { AppSettings, loadAppSettings, ThemeMode, updateAppSettings } from './app-settings'
 import { getToolCatalogSections } from './tool-settings'
+import {
+  loadLLMSettings,
+  resolveEffectiveLLMSettings,
+  testLLMConnection,
+  updateLLMSettings
+} from './llm-settings'
 
 // 开启 CDP，使用高位端口避免冲突
 const CDP_PORT = 19222
@@ -938,6 +944,18 @@ app.whenReady().then(async () => {
   ipcMain.handle('settings-tool-catalog', () => {
     return getToolCatalogSections()
   })
+  ipcMain.handle('llm-settings-get', () => {
+    return loadLLMSettings()
+  })
+  ipcMain.handle('llm-settings-update', (_, patch) => {
+    return updateLLMSettings(patch || {})
+  })
+  ipcMain.handle('llm-settings-effective', (_, options?: { includeApiKey?: boolean }) => {
+    return resolveEffectiveLLMSettings(options)
+  })
+  ipcMain.handle('llm-settings-test', (_, input) => {
+    return testLLMConnection(input || {})
+  })
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
@@ -1078,41 +1096,99 @@ app.on('window-all-closed', () => {
 })
 
 function startControlServer() {
+  const sendJson = (res: http.ServerResponse, statusCode: number, payload: unknown) => {
+    res.writeHead(statusCode, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify(payload))
+  }
+
+  const readJsonBody = async (req: http.IncomingMessage): Promise<Record<string, unknown>> => {
+    const chunks: Buffer[] = []
+    for await (const chunk of req) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+    }
+    const raw = Buffer.concat(chunks).toString('utf8')
+    return raw ? (JSON.parse(raw) as Record<string, unknown>) : {}
+  }
+
   const server = http.createServer((req, res) => {
-    if (req.method === 'GET' && req.url === '/tabs/active') {
+    const requestUrl = new URL(req.url || '/', 'http://127.0.0.1')
+
+    if (req.method === 'GET' && requestUrl.pathname === '/health') {
+      sendJson(res, 200, { success: true, data: { status: 'ok', service: 'desktop-control' } })
+      return
+    }
+
+    if (req.method === 'GET' && requestUrl.pathname === '/tabs/active') {
       const activeTab = getActiveTabInfo()
-      res.writeHead(activeTab ? 200 : 404, { 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ success: Boolean(activeTab), data: activeTab }))
+      sendJson(res, activeTab ? 200 : 404, { success: Boolean(activeTab), data: activeTab })
       return
     }
 
-    if (req.method !== 'POST' || req.url !== '/tabs/select') {
-      res.writeHead(404)
-      res.end()
+    if (req.method === 'GET' && requestUrl.pathname === '/llm/settings') {
+      sendJson(res, 200, { success: true, data: loadLLMSettings() })
       return
     }
 
-    let body = ''
-    req.on('data', chunk => {
-      body += chunk
-    })
-    req.on('end', () => {
-      try {
-        const payload = JSON.parse(body || '{}')
-        let ok = false
-        if (typeof payload.id === 'number') {
-          ok = selectTabById(payload.id)
-        } else if (typeof payload.index === 'number') {
-          ok = selectTabByIndex(payload.index)
+    if (req.method === 'GET' && requestUrl.pathname === '/llm/effective') {
+      const includeApiKey = requestUrl.searchParams.get('includeApiKey') === '1'
+      sendJson(res, 200, {
+        success: true,
+        data: resolveEffectiveLLMSettings({ includeApiKey })
+      })
+      return
+    }
+
+    if (req.method === 'POST' && requestUrl.pathname === '/llm/settings') {
+      void (async () => {
+        try {
+          const payload = await readJsonBody(req)
+          sendJson(res, 200, { success: true, data: updateLLMSettings(payload) })
+        } catch (error) {
+          sendJson(res, 400, {
+            success: false,
+            error: error instanceof Error ? error.message : 'Invalid JSON'
+          })
         }
+      })()
+      return
+    }
 
-        res.writeHead(ok ? 200 : 400, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({ success: ok }))
-      } catch (e) {
-        res.writeHead(400, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({ success: false, error: 'Invalid JSON' }))
-      }
-    })
+    if (req.method === 'POST' && requestUrl.pathname === '/llm/test') {
+      void (async () => {
+        try {
+          const payload = await readJsonBody(req)
+          sendJson(res, 200, { success: true, data: await testLLMConnection(payload) })
+        } catch (error) {
+          sendJson(res, 400, {
+            success: false,
+            error: error instanceof Error ? error.message : 'Invalid JSON'
+          })
+        }
+      })()
+      return
+    }
+
+    if (req.method === 'POST' && requestUrl.pathname === '/tabs/select') {
+      void (async () => {
+        try {
+          const payload = await readJsonBody(req)
+          let ok = false
+          if (typeof payload.id === 'number') {
+            ok = selectTabById(payload.id)
+          } else if (typeof payload.index === 'number') {
+            ok = selectTabByIndex(payload.index)
+          }
+
+          sendJson(res, ok ? 200 : 400, { success: ok })
+        } catch {
+          sendJson(res, 400, { success: false, error: 'Invalid JSON' })
+        }
+      })()
+      return
+    }
+
+    res.writeHead(404)
+    res.end()
   })
 
   server.listen(DESKTOP_CONTROL_PORT, '127.0.0.1', () => {

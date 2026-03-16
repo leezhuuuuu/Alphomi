@@ -3,6 +3,7 @@ import json
 import httpx
 from typing import List, Dict, Any, AsyncGenerator
 from ..utils.config import load_config_from_yaml
+from .runtime_llm_config import resolve_runtime_llm_config
 # 引入新的 logger 函数
 from ..utils.logger import save_llm_trace
 
@@ -124,10 +125,18 @@ class StreamResponseMerger:
         }
 
 class CustomLLMClient:
-    def __init__(self):
-        self.api_key = os.getenv("LLM_API_KEY")
-        self.base_url = os.getenv("LLM_BASE_URL")
-        self.model = os.getenv("LLM_MODEL", "glm-4")
+    def __init__(
+        self,
+        *,
+        api_key: str | None = None,
+        base_url: str | None = None,
+        model: str | None = None,
+        endpoint_mode: str | None = None,
+    ):
+        self.api_key = api_key or os.getenv("LLM_API_KEY")
+        self.base_url = base_url or os.getenv("LLM_BASE_URL")
+        self.model = model or os.getenv("LLM_MODEL", "glm-4")
+        self.endpoint_mode = endpoint_mode or os.getenv("LLM_ENDPOINT_MODE", "auto")
         self.debug = os.getenv("DEBUG_LLM", "false").lower() == "true"
         # 预读取开关，减少 I/O
         self.save_traces = os.getenv("SAVE_LLM_TRACES", "false").lower() == "true"
@@ -136,6 +145,13 @@ class CustomLLMClient:
         )
         # 某些网关对 /responses 强制要求 stream=true，探测后记忆，避免每次先 400 再重试。
         self._responses_requires_stream = False
+        self._manual_overrides = {
+            "api_key": api_key,
+            "base_url": base_url,
+            "model": model,
+            "endpoint_mode": endpoint_mode,
+        }
+        self._runtime_resolved = False
 
         if not self.api_key:
             print("⚠️ Warning: LLM_API_KEY not found")
@@ -149,11 +165,47 @@ class CustomLLMClient:
         """
         base = (self.base_url or "").strip().rstrip("/")
         lowered = base.lower()
+        forced = (self.endpoint_mode or "auto").strip()
+
+        def strip_known_suffix(value: str) -> str:
+            lowered_value = value.lower()
+            if lowered_value.endswith("/chat/completions"):
+                return value[: -len("/chat/completions")]
+            if lowered_value.endswith("/responses"):
+                return value[: -len("/responses")]
+            return value
+
+        if forced == "chat_completions":
+            root = strip_known_suffix(base)
+            return "chat_completions", f"{root}/chat/completions"
+        if forced == "responses":
+            root = strip_known_suffix(base)
+            return "responses", f"{root}/responses"
+
         if lowered.endswith("/chat/completions"):
             return "chat_completions", base
         if lowered.endswith("/responses"):
             return "responses", base
         return "chat_completions", f"{base}/chat/completions"
+
+    async def _ensure_runtime_config(self) -> None:
+        if self._runtime_resolved:
+            return
+
+        resolved = await resolve_runtime_llm_config()
+        self.api_key = self._manual_overrides["api_key"] or resolved.get("api_key") or self.api_key
+        self.base_url = self._manual_overrides["base_url"] or resolved.get("base_url") or self.base_url
+        self.model = self._manual_overrides["model"] or resolved.get("model") or self.model or "glm-4"
+        self.endpoint_mode = (
+            self._manual_overrides["endpoint_mode"]
+            or resolved.get("endpoint_mode")
+            or self.endpoint_mode
+            or "auto"
+        )
+        self._runtime_resolved = True
+
+        if not self.api_key:
+            print("⚠️ Warning: LLM_API_KEY not found")
 
     @staticmethod
     def _normalize_tool_arguments(arguments: Any) -> str:
@@ -518,6 +570,13 @@ class CustomLLMClient:
         """
         普通非流式请求 (用于工具调用时的思考)
         """
+        await self._ensure_runtime_config()
+
+        if not self.base_url:
+            return {"error": {"message": "LLM_BASE_URL is not configured"}}
+        if not self.api_key:
+            return {"error": {"message": "LLM_API_KEY is not configured"}}
+
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
@@ -677,6 +736,15 @@ class CustomLLMClient:
         """
         异步流式请求生成器 - 修复版 (关闭 http2，增加超时)
         """
+        await self._ensure_runtime_config()
+
+        if not self.base_url:
+            yield {"type": "error", "error": "LLM_BASE_URL is not configured"}
+            return
+        if not self.api_key:
+            yield {"type": "error", "error": "LLM_API_KEY is not configured"}
+            return
+
         endpoint_mode, request_url = self._resolve_endpoint()
         if endpoint_mode == "responses":
             async for event in self._stream_responses_via_non_stream(messages, tools):

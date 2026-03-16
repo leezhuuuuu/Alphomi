@@ -53,6 +53,7 @@ Common settings:
 - `LLM_API_KEY`
 - `LLM_BASE_URL`
 - `LLM_MODEL`
+- `LLM_ENDPOINT_MODE`
 - trace and logging directories
 
 ### `desktop`
@@ -98,6 +99,31 @@ The Brain expects an OpenAI-compatible endpoint. `LLM_BASE_URL` can be either:
 - a base URL like `https://provider.example/v1`
 - a full endpoint like `https://provider.example/v1/chat/completions`
 - a full responses endpoint like `https://provider.example/v1/responses`
+
+`LLM_ENDPOINT_MODE` accepts:
+
+- `auto`
+- `chat_completions`
+- `responses`
+
+The Desktop app now owns user-managed LLM provider profiles. The effective runtime precedence for LLM fields is:
+
+1. explicit environment variables
+2. Desktop user settings stored by the Electron shell
+3. `config.yaml`
+4. built-in defaults
+
+Persistence model:
+
+- non-secret profile fields are stored in the Desktop user-data directory in `llm-settings.json`
+- API keys are stored separately in `llm-secrets.json`
+- when `safeStorage` is available, the Desktop encrypts those secrets before writing them to disk
+
+Runtime behavior:
+
+- the Desktop exposes local LLM settings APIs over IPC and the local control service
+- the Brain resolves the effective LLM configuration at request time, so new turns pick up provider changes without requiring an app restart
+- if the Desktop is unavailable, the Brain falls back to environment variables and `config.yaml`
 
 If the optional LLM E2E test is run without a valid `LLM_BASE_URL`, the test skips with an explanatory message.
 

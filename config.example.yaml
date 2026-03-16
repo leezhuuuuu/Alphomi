@@ -80,6 +80,7 @@ brain:
   LLM_API_KEY: "" # LLM API key
   LLM_BASE_URL: "" # OpenAI-compatible base URL or a full chat/responses endpoint
   LLM_MODEL: "glm-4" # Default model name
+  LLM_ENDPOINT_MODE: "auto" # auto | chat_completions | responses
   DEBUG_LLM: false # Enable verbose LLM debug logging
   TOOL_CALL_MODE: "json" # Legacy compatibility field for OpenAI-compatible gateways
   SUB_AGENT_HEADLESS: false # Run dispatched sub-agents in headed mode when supported

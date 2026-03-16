@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional
 import yaml
 
 _CONFIG_NAMES = ("config.yaml", "config.yml")
+_INJECTED_ENV_VALUES: Dict[str, str] = {}
 
 
 def _find_config_path(start_dir: Path) -> Optional[Path]:
@@ -28,7 +29,7 @@ def _normalize_env_value(value: Any) -> str:
     return str(value)
 
 
-def load_config_from_yaml(section: Optional[str] = None) -> Dict[str, Any]:
+def read_config_from_yaml(section: Optional[str] = None) -> Dict[str, Any]:
     config_path = _find_config_path(Path.cwd())
     if not config_path:
         return {}
@@ -43,11 +44,27 @@ def load_config_from_yaml(section: Optional[str] = None) -> Dict[str, Any]:
     if not isinstance(scoped, dict):
         return {}
 
+    return scoped
+
+
+def load_config_from_yaml(section: Optional[str] = None) -> Dict[str, Any]:
+    scoped = read_config_from_yaml(section)
+    if not isinstance(scoped, dict):
+        return {}
+
     for key, value in scoped.items():
         if value is None:
             continue
         if key in os.environ:
             continue
-        os.environ[key] = _normalize_env_value(value)
+        normalized = _normalize_env_value(value)
+        os.environ[key] = normalized
+        _INJECTED_ENV_VALUES[key] = normalized
 
     return scoped
+
+
+def was_env_injected_from_yaml(key: str) -> bool:
+    current = os.environ.get(key)
+    injected = _INJECTED_ENV_VALUES.get(key)
+    return current is not None and injected is not None and current == injected

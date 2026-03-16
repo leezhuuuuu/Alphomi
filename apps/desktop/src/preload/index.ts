@@ -8,6 +8,8 @@ interface Tab {
   active: boolean
 }
 
+type LLMEndpointMode = 'auto' | 'chat_completions' | 'responses'
+
 // Custom APIs for renderer
 const api = {
   navigate: (url: string) => ipcRenderer.send('navigate', url),
@@ -26,6 +28,28 @@ const api = {
   }) =>
     ipcRenderer.invoke('settings-update', patch),
   getToolCatalog: () => ipcRenderer.invoke('settings-tool-catalog'),
+  getLLMSettings: () => ipcRenderer.invoke('llm-settings-get'),
+  updateLLMSettings: (patch: {
+    activeProfileId?: string | null
+    profiles?: {
+      id?: string
+      label?: string
+      providerType?: 'openai_compatible'
+      baseUrl?: string
+      model?: string
+      endpointMode?: LLMEndpointMode
+      apiKey?: string
+    }[]
+  }) => ipcRenderer.invoke('llm-settings-update', patch),
+  getEffectiveLLMSettings: (options?: { includeApiKey?: boolean }) =>
+    ipcRenderer.invoke('llm-settings-effective', options),
+  testLLMSettings: (input?: {
+    profileId?: string | null
+    baseUrl?: string
+    model?: string
+    endpointMode?: LLMEndpointMode
+    apiKey?: string
+  }) => ipcRenderer.invoke('llm-settings-test', input),
   openMenu: (anchor: { x: number; y: number; width: number; height: number }) =>
     ipcRenderer.send('menu-open', anchor),
   menuAction: (action: string) => ipcRenderer.invoke('menu-action', action),

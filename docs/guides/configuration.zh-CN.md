@@ -53,6 +53,7 @@ Alphomi 按以下顺序解析配置：
 - `LLM_API_KEY`
 - `LLM_BASE_URL`
 - `LLM_MODEL`
+- `LLM_ENDPOINT_MODE`
 - trace 与日志目录
 
 ### `desktop`
@@ -98,6 +99,31 @@ Brain 期望连接一个兼容 OpenAI 的接口。`LLM_BASE_URL` 可以是以下
 - 基础 URL，例如 `https://provider.example/v1`
 - 完整 chat completions 端点，例如 `https://provider.example/v1/chat/completions`
 - 完整 responses 端点，例如 `https://provider.example/v1/responses`
+
+`LLM_ENDPOINT_MODE` 支持以下值：
+
+- `auto`
+- `chat_completions`
+- `responses`
+
+现在，Desktop 负责管理用户在设置页里维护的 LLM provider profile。LLM 字段的运行时优先级为：
+
+1. 显式环境变量
+2. Electron Desktop 持久化的用户设置
+3. `config.yaml`
+4. 代码内默认值
+
+持久化方式：
+
+- 非敏感 profile 字段保存在 Desktop 用户目录下的 `llm-settings.json`
+- API key 单独保存在 `llm-secrets.json`
+- 如果系统支持 `safeStorage`，Desktop 会先加密再写盘
+
+运行时行为：
+
+- Desktop 通过 IPC 和本地 control service 暴露 LLM 设置 API
+- Brain 会在每次请求前解析当前有效的 LLM 配置，因此新的对话回合无需重启即可拿到最新 provider 设置
+- 如果 Desktop 当前不可用，Brain 会自动回退到环境变量和 `config.yaml`
 
 如果在没有有效 `LLM_BASE_URL` 的情况下运行可选的 LLM E2E 测试，测试会带解释性信息地跳过。
 
