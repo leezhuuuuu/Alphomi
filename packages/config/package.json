@@ -1,0 +1,12 @@
+{
+  "name": "@alphomi/config",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared configuration defaults and documentation for Alphomi",
+  "type": "module",
+  "scripts": {
+    "typecheck": "node scripts/check-config-sync.mjs",
+    "test": "pnpm run typecheck",
+    "lint": "pnpm run typecheck"
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alphomi.dev/schemas/port-registry.schema.json",
+  "title": "Alphomi Port Registry",
+  "type": "object",
+  "properties": {
+    "driver": {
+      "$ref": "#/$defs/serviceEntry"
+    },
+    "brain": {
+      "$ref": "#/$defs/serviceEntry"
+    },
+    "desktopControl": {
+      "$ref": "#/$defs/serviceEntry"
+    },
+    "cdp": {
+      "$ref": "#/$defs/serviceEntry"
+    },
+    "sessionId": {
+      "type": "string"
+    }
+  },
+  "$defs": {
+    "serviceEntry": {
+      "type": "object",
+      "required": [
+        "port",
+        "url",
+        "updatedAt"
+      ],
+      "properties": {
+        "port": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "ready": {
+          "type": "boolean"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

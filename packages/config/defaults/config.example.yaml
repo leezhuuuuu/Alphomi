@@ -1,0 +1,98 @@
+# Example configuration. Copy to config.yaml if you want to customize local settings.
+# Environment variables with the same names always take precedence.
+
+# Driver: shared config for the Playwright REST service and desktop bridge
+driver:
+  PORT: 13000 # Driver HTTP service port
+  API_BASE_URL: "http://localhost:13000" # Base URL used by internal adapters
+  HEADLESS: true # Run Playwright browser in headless mode
+  VISION_BASE_URL: "" # OpenAI-compatible VLM base URL, for example https://api.example.com/v1
+  VISION_API_KEY: "" # VLM API key
+  VISION_MODEL: "" # VLM model name
+  VISION_ENABLE_THINK: false # Allow chain-of-thought style reasoning if supported
+  VISION_TIMEOUT_MS: 60000 # Vision request timeout
+  VISION_TRACES_DIR: "apps/brain/logs/vllm_traces" # Vision trace directory; relative paths resolve from the repo root in dev
+  # VISION_MAX_TOKENS: 1024 # Optional explicit max output tokens
+  VISION_TEMPERATURE: 0 # Vision temperature
+  VISION_TOP_P: 0.1 # Vision top_p
+  VISION_IMAGE_DETAIL: "high" # image_url detail hint
+  VISUAL_INSPECTION_CACHE_SIZE: 20 # Per-session visual inspection cache size
+  AUTO_SNAPSHOT_FULL: false # Whether automatic snapshots should capture the full page
+  DEFAULT_SNAPSHOT_FULL: false # Default snapshot mode when callers do not specify one
+  NEW_TAB_URL: "https://www.google.com" # Default new-tab URL
+  SNAPSHOT_LIST_THRESHOLD: 10 # Fold long lists after this many items
+  SNAPSHOT_LIST_HEAD: 5 # Number of head lines kept when folding lists
+  SNAPSHOT_LIST_TAIL: 2 # Number of tail lines kept when folding lists
+  SNAPSHOT_WAIT_FOR_READY: true # Wait for the page to stabilize before snapshotting
+  SNAPSHOT_READY_TIMEOUT_MS: 12000 # Total ready-state budget in milliseconds
+  SNAPSHOT_DOMCONTENT_TIMEOUT_MS: 4000 # DOMContentLoaded wait budget
+  SNAPSHOT_LOADING_TIMEOUT_MS: 3500 # Loading-indicator wait budget
+  SNAPSHOT_DOM_QUIET_TIMEOUT_MS: 6000 # DOM quiet-state wait budget
+  SNAPSHOT_DOM_QUIET_WINDOW_MS: 800 # Consecutive quiet window before treating the DOM as stable
+  SNAPSHOT_DOM_POLL_MS: 100 # Ready-state polling interval
+  SNAPSHOT_LOADING_SELECTORS: "[aria-busy=\"true\"],[data-loading=\"true\"],.loading,.spinner,.skeleton,.ant-spin-spinning" # Common loading selectors
+  SNAPSHOT_DIFF_ENABLED: true # Enable full/delta/unchanged snapshot responses
+  SNAPSHOT_DIFF_FORCE_FULL_EVERY: 6 # Force a full snapshot every N snapshots
+  SNAPSHOT_DIFF_MAX_LINES: 80 # Max added/removed lines returned in each delta group
+  SNAPSHOT_DIFF_CHANGE_RATIO_THRESHOLD: 0.35 # Switch back to full snapshots above this change ratio
+  SNAPSHOT_DIFF_MIN_FULL_LINES: 24 # Always return full snapshots below this line count
+  SNAPSHOT_DIFF_MIN_REDUCTION_RATIO: 0.2 # Delta must save at least 20 percent text to be used
+  SNAPSHOT_DIFF_LCS_CELL_LIMIT: 350000 # LCS computation limit before falling back to full
+  DESKTOP_CONTROL_PORT: 13001 # Desktop control service port
+  DESKTOP_CONTROL_URL: "http://127.0.0.1:13001" # Desktop control service URL
+  ELECTRON_RENDERER_URL: "http://localhost:5173" # Desktop renderer URL in development
+
+# User data: persistent cookies and localStorage without forcing a full persistent profile
+user_data:
+  enabled: false # false = clean sessions, true = persist cookies and localStorage
+  mode: "cookies-only" # cookies-only | browser-profile
+  storage_path: "./temp/user-data/state.json" # Storage state file
+  profile_id: "default" # Reserved for multi-profile setups
+  save_interval_sec: 60 # Periodic save interval; 0 means save on exit only
+  save_debounce_ms: 3000 # Debounce for event-triggered saves
+  save_min_interval_sec: 5 # Minimum interval between event-triggered saves
+  save_on_navigation: true # Save on navigation and tab switching
+  local_storage_scope: "visited-origins" # visited-origins | active-only
+  local_storage_merge: "merge" # merge | overwrite | replace_origin
+  encrypt: false # Reserved for future encrypted storage
+  max_origins: 200 # Limit tracked origins in storage state
+
+# Brain: agent orchestration and LLM config
+brain:
+  PORT: 18000 # Brain HTTP service port
+  MAX_CONTEXT_TOKENS: 200000 # Maximum LLM context window
+  CONTEXT_COMPRESSION_THRESHOLD_RATIO: 0.8 # Start compressing when the context reaches 80 percent of MAX_CONTEXT_TOKENS
+  WORKFLOW_MODE: "fast" # fast | advanced | benchmark
+  TYPING_BASE: 1 # Streaming typer base characters per batch
+  TYPING_BATCH_MAX: 10 # Max characters per batch
+  TYPING_BACKLOG_DIV: 50 # Backlog divisor; larger means slower catch-up
+  TYPING_ELAPSED_THRESHOLD: 0.2 # Speed-up threshold in seconds
+  TYPING_BOOST_MAX: 10 # Max characters when boosted
+  TYPING_SLEEP_SECONDS: 0.01 # Delay between typing batches
+  SAVE_SESSION_LOGS: false # Persist session logs locally
+  SESSION_LOGS_DIR: "logs" # Session log directory
+  SAVE_LLM_TRACES: false # Persist raw LLM traces locally
+  LLM_TRACES_DIR: "logs/traces" # LLM trace directory
+  PRAS_TOOL_TIMEOUT_MS: 90000 # Total timeout for brain-to-driver tool calls
+  PRAS_TOOL_CONNECT_TIMEOUT_MS: 10000 # Connect timeout for driver calls
+  ENABLED_TOOLS: "navigate,click,type,snapshot,tabs" # Legacy compatibility field; the current brain loads all tools
+  PRAS_URL: "http://localhost:13000" # Driver base URL
+  LLM_API_KEY: "" # LLM API key
+  LLM_BASE_URL: "" # OpenAI-compatible base URL or a full chat/responses endpoint
+  LLM_MODEL: "glm-4" # Default model name
+  DEBUG_LLM: false # Enable verbose LLM debug logging
+  TOOL_CALL_MODE: "json" # Legacy compatibility field for OpenAI-compatible gateways
+  SUB_AGENT_HEADLESS: false # Run dispatched sub-agents in headed mode when supported
+  LLM_PROXY_FALLBACK_DIRECT: true # Retry direct connections when a local proxy fails
+
+# Desktop: Electron shell settings
+desktop:
+  DESKTOP_CONTROL_PORT: 13001 # Desktop control service port
+  NEW_TAB_URL: "https://www.google.com" # Default new-tab URL
+  ELECTRON_RENDERER_URL: "http://localhost:5173" # Renderer URL in development
+  VITE_THEME_MODE: "light" # light | dark
+
+# Skills: optional registry-backed skill discovery
+skills:
+  REGISTRY_URL: "https://skills.leezhu.cn" # Skills registry base URL
+  INSTALL_DIR: "~/.skills" # Local installation directory for skills

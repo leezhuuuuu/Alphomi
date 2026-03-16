@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alphomi.dev/schemas/ws-event-envelope.schema.json",
+  "title": "Alphomi WebSocket Event Envelope",
+  "type": "object",
+  "required": [
+    "type"
+  ],
+  "properties": {
+    "type": {
+      "type": "string"
+    },
+    "data": {},
+    "error": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

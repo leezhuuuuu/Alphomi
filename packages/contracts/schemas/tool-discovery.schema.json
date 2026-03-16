@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alphomi.dev/schemas/tool-discovery.schema.json",
+  "title": "Alphomi Tool Discovery Payload",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "name",
+      "description",
+      "inputSchema"
+    ],
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "description": {
+        "type": "string"
+      },
+      "inputSchema": {
+        "type": "object"
+      }
+    },
+    "additionalProperties": true
+  }
+}

@@ -1,0 +1,40 @@
+[build-system]
+requires = ["hatchling>=1.25.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "alphomi-brain"
+version = "0.1.0"
+description = "Python brain service for the Alphomi local agent workspace"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi==0.121.2",
+  "uvicorn[standard]==0.38.0",
+  "requests>=2.31.0",
+  "httpx>=0.24.0",
+  "langgraph==1.0.3",
+  "langgraph-checkpoint==3.0.1",
+  "langgraph-prebuilt==1.0.4",
+  "langgraph-sdk==0.2.9",
+  "langchain-core==1.2.3",
+  "PyYAML>=6.0.0",
+  "pydantic==2.11.9",
+  "pydantic-core==2.33.2",
+  "pydantic-settings==2.11.0",
+  "mcp==1.20.0",
+  "websockets>=12.0",
+  "skills-mcp>=0.1.0"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pyinstaller>=6.11.1",
+  "pytest>=8.3.3"
+]
+
+[project.scripts]
+alphomi-brain = "alphomi_brain.main:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/alphomi_brain"]

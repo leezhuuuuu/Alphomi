@@ -1,0 +1,124 @@
+{
+  "name": "alphomi-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Alphomi is an open local agent workspace that combines an Electron desktop shell, a Playwright driver, and a Python brain service.",
+  "author": "Alphomi contributors",
+  "license": "UNLICENSED",
+  "keywords": [
+    "agent",
+    "browser",
+    "electron",
+    "playwright",
+    "fastapi",
+    "desktop",
+    "automation"
+  ],
+  "packageManager": "pnpm@8.10.0",
+  "engines": {
+    "node": ">=18.18.0"
+  },
+  "scripts": {
+    "doctor": "node scripts/doctor.mjs",
+    "sync:config-template": "node scripts/sync-config-template.mjs",
+    "clean": "bash scripts/clean.sh",
+    "bootstrap": "bash scripts/bootstrap.sh",
+    "dev": "turbo run dev --parallel",
+    "dev:desktop": "pnpm --filter @alphomi/desktop dev",
+    "dev:driver": "pnpm --filter @alphomi/driver dev",
+    "dev:brain": "pnpm --filter @alphomi/brain dev",
+    "build": "turbo run build --filter=!@alphomi/brain",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "smoke": "bash scripts/smoke.sh",
+    "validate": "pnpm doctor && pnpm typecheck && pnpm test && SKIP_WORKSPACE_TESTS=1 pnpm smoke && pnpm build:brain && pnpm build",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,mjs,md,json,yaml,yml}\"",
+    "build:brain": "bash scripts/build-brain.sh",
+    "dist": "pnpm run build:brain && pnpm run build && electron-builder",
+    "dist:mac": "pnpm run build:brain && pnpm run build && electron-builder --mac",
+    "dist:win": "pnpm run build:brain && pnpm run build && electron-builder --win",
+    "dist:linux": "pnpm run build:brain && pnpm run build && electron-builder --linux",
+    "package:mac:dir": "pnpm run build:brain && pnpm run build && electron-builder --mac --dir"
+  },
+  "devDependencies": {
+    "electron": "^39.2.7",
+    "electron-builder": "^26.0.12",
+    "prettier": "^3.3.3",
+    "turbo": "^2.7.6",
+    "typescript": "^5.6.3"
+  },
+  "build": {
+    "appId": "com.alphomi.app",
+    "productName": "Alphomi",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "apps/desktop/out/**/*",
+      "apps/driver/dist/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "extraMetadata": {
+      "main": "apps/desktop/out/main/index.js"
+    },
+    "extraResources": [
+      {
+        "from": "apps/brain/dist/alphomi-brain",
+        "to": "brain/alphomi-brain"
+      },
+      {
+        "from": "apps/brain/src",
+        "to": "brain/src"
+      },
+      {
+        "from": "packages/config/defaults/config.example.yaml",
+        "to": "brain/config.yaml"
+      },
+      {
+        "from": "packages/config/defaults/config.example.yaml",
+        "to": "config/config.example.yaml"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "apps/desktop/assets/icon.icns"
+    },
+    "dmg": {
+      "title": "${productName} ${version}",
+      "format": "UDZO"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "apps/desktop/assets/icon.ico"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "apps/desktop/assets/icon.png"
+    }
+  }
+}

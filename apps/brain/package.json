@@ -1,0 +1,11 @@
+{
+  "name": "@alphomi/brain",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "bash ../../scripts/brain-dev.sh",
+    "build": "bash ../../scripts/build-brain.sh",
+    "test": "python3 -m compileall src/alphomi_brain >/dev/null",
+    "typecheck": "python3 -m compileall src/alphomi_brain >/dev/null"
+  }
+}

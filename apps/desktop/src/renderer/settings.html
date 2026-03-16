@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>设置</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f3efe8;
+        --panel: rgba(255, 253, 249, 0.9);
+        --panel-strong: #fffdf8;
+        --text: #1f2328;
+        --muted: #67707b;
+        --border: rgba(31, 35, 40, 0.1);
+        --border-strong: rgba(31, 35, 40, 0.16);
+        --accent: #0f766e;
+        --accent-soft: rgba(15, 118, 110, 0.1);
+        --danger: #b42318;
+        --shadow: 0 20px 48px rgba(18, 24, 28, 0.12);
+      }
+
+      html[data-theme='dark'] {
+        color-scheme: dark;
+        --bg: #121516;
+        --panel: rgba(18, 22, 24, 0.88);
+        --panel-strong: #171b1d;
+        --text: #edf0f3;
+        --muted: #9aa5b1;
+        --border: rgba(255, 255, 255, 0.08);
+        --border-strong: rgba(255, 255, 255, 0.14);
+        --accent: #34b3a0;
+        --accent-soft: rgba(52, 179, 160, 0.14);
+        --danger: #f97066;
+        --shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI Variable',
+          'Segoe UI', sans-serif;
+        color: var(--text);
+        background: var(--bg);
+      }
+
+      .shell {
+        min-height: 100vh;
+        padding: 40px 32px 56px;
+      }
+
+      .panel {
+        width: min(100%, 820px);
+        margin: 0 auto;
+        padding: 0;
+        border: none;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+        backdrop-filter: none;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+      }
+
+      h1 {
+        margin: 16px 0 8px;
+        font-size: clamp(30px, 4vw, 40px);
+        line-height: 1.08;
+        letter-spacing: -0.03em;
+      }
+
+      .intro {
+        margin: 0;
+        max-width: 560px;
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.7;
+      }
+
+      form {
+        margin-top: 30px;
+      }
+
+      .section {
+        padding: 22px 0;
+        border-top: 1px solid var(--border);
+      }
+
+      .section:first-of-type {
+        padding-top: 0;
+        border-top: none;
+      }
+
+      .section-head {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 16px;
+      }
+
+      .section-title {
+        margin: 0;
+        font-size: 18px;
+        letter-spacing: -0.02em;
+      }
+
+      .section-desc {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.65;
+      }
+
+      .radio-grid {
+        display: grid;
+        gap: 12px;
+      }
+
+      .radio-card {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 16px 18px;
+        border-radius: 18px;
+        border: 1px solid var(--border);
+        background: color-mix(in srgb, var(--panel-strong) 86%, transparent);
+        cursor: pointer;
+        transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+      }
+
+      .radio-card:hover {
+        border-color: var(--border-strong);
+        transform: translateY(-1px);
+      }
+
+      .radio-card input {
+        margin-top: 3px;
+        accent-color: var(--accent);
+      }
+
+      .radio-title {
+        display: block;
+        font-size: 15px;
+        font-weight: 600;
+      }
+
+      .radio-desc {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .field-label {
+        display: block;
+        margin-bottom: 10px;
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .field {
+        width: 100%;
+        padding: 14px 16px;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        background: color-mix(in srgb, var(--panel-strong) 90%, transparent);
+        color: var(--text);
+        font: inherit;
+        outline: none;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .field:focus {
+        border-color: color-mix(in srgb, var(--accent) 58%, white);
+        box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 14%, transparent);
+      }
+
+      .hint {
+        margin: 10px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding-top: 24px;
+        border-top: 1px solid var(--border);
+      }
+
+      .status {
+        min-height: 20px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .status[data-tone='error'] {
+        color: var(--danger);
+      }
+
+      .status[data-tone='success'] {
+        color: var(--accent);
+      }
+
+      .save-btn {
+        border: none;
+        border-radius: 999px;
+        padding: 12px 20px;
+        background: var(--accent);
+        color: #ffffff;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s ease, opacity 0.2s ease;
+      }
+
+      .save-btn:hover {
+        transform: translateY(-1px);
+      }
+
+      .save-btn:disabled {
+        opacity: 0.7;
+        cursor: wait;
+        transform: none;
+      }
+
+      @media (max-width: 720px) {
+        .shell {
+          padding: 24px 16px 36px;
+        }
+
+        .footer {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .save-btn {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="panel">
+        <div class="eyebrow">Settings</div>
+        <h1>设置</h1>
+        <p class="intro">
+          这里只保留真正会生效的选项。当前版本先提供外观模式和新建标签页地址，两项都会直接影响应用行为。
+        </p>
+
+        <form id="settings-form">
+          <section class="section">
+            <div class="section-head">
+              <h2 class="section-title">外观模式</h2>
+              <p class="section-desc">选择浅色、深色，或跟随系统外观自动切换。</p>
+            </div>
+
+            <div class="radio-grid">
+              <label class="radio-card">
+                <input type="radio" name="theme-mode" value="light" />
+                <span>
+                  <span class="radio-title">浅色</span>
+                  <span class="radio-desc">保持明亮、克制的界面观感。</span>
+                </span>
+              </label>
+
+              <label class="radio-card">
+                <input type="radio" name="theme-mode" value="dark" />
+                <span>
+                  <span class="radio-title">深色</span>
+                  <span class="radio-desc">在低光环境里更沉稳，也更聚焦内容。</span>
+                </span>
+              </label>
+
+              <label class="radio-card">
+                <input type="radio" name="theme-mode" value="system" />
+                <span>
+                  <span class="radio-title">跟随系统</span>
+                  <span class="radio-desc">自动跟随 macOS / Windows 当前的深浅外观。</span>
+                </span>
+              </label>
+            </div>
+          </section>
+
+          <section class="section">
+            <div class="section-head">
+              <h2 class="section-title">新建标签页地址</h2>
+              <p class="section-desc">每次新建标签页时，浏览器都会先打开这里设置的地址。</p>
+            </div>
+
+            <label class="field-label" for="new-tab-url">地址</label>
+            <input
+              class="field"
+              id="new-tab-url"
+              name="new-tab-url"
+              type="text"
+              inputmode="url"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="https://example.com"
+            />
+            <p class="hint">支持直接输入域名，保存时会自动补全为 `https://`。也支持 `about:blank`。</p>
+          </section>
+
+          <div class="footer">
+            <div class="status" id="status" aria-live="polite"></div>
+            <button class="save-btn" id="save-btn" type="submit">保存设置</button>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var form = document.getElementById('settings-form');
+        var status = document.getElementById('status');
+        var saveButton = document.getElementById('save-btn');
+        var urlInput = document.getElementById('new-tab-url');
+        var themeInputs = Array.prototype.slice.call(
+          document.querySelectorAll('input[name="theme-mode"]')
+        );
+
+        function resolveTheme(mode) {
+          if (
+            mode === 'system' &&
+            window.matchMedia &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches
+          ) {
+            return 'dark';
+          }
+          return mode === 'dark' ? 'dark' : 'light';
+        }
+
+        function applyPreview(mode) {
+          root.setAttribute('data-theme', resolveTheme(mode));
+        }
+
+        function setStatus(text, tone) {
+          if (!status) return;
+          status.textContent = text || '';
+          if (tone) {
+            status.setAttribute('data-tone', tone);
+          } else {
+            status.removeAttribute('data-tone');
+          }
+        }
+
+        function getSelectedMode() {
+          var selected = themeInputs.find(function (input) {
+            return input.checked;
+          });
+          return selected ? selected.value : 'light';
+        }
+
+        function fillForm(settings) {
+          themeInputs.forEach(function (input) {
+            input.checked = input.value === settings.themeMode;
+          });
+          if (urlInput) {
+            urlInput.value = settings.newTabUrl || '';
+          }
+          applyPreview(settings.themeMode || 'light');
+        }
+
+        async function loadSettings() {
+          if (!window.api || !window.api.getSettings) {
+            setStatus('无法读取设置：预加载 API 不可用。', 'error');
+            return;
+          }
+
+          try {
+            var settings = await window.api.getSettings();
+            fillForm(settings);
+          } catch (error) {
+            setStatus('读取设置失败，请稍后重试。', 'error');
+          }
+        }
+
+        themeInputs.forEach(function (input) {
+          input.addEventListener('change', function () {
+            applyPreview(getSelectedMode());
+            setStatus('');
+          });
+        });
+
+        if (window.matchMedia) {
+          window
+            .matchMedia('(prefers-color-scheme: dark)')
+            .addEventListener('change', function () {
+              if (getSelectedMode() === 'system') {
+                applyPreview('system');
+              }
+            });
+        }
+
+        form.addEventListener('submit', async function (event) {
+          event.preventDefault();
+          if (!window.api || !window.api.updateSettings) {
+            setStatus('无法保存设置：预加载 API 不可用。', 'error');
+            return;
+          }
+
+          saveButton.disabled = true;
+          setStatus('正在保存...');
+
+          try {
+            var next = await window.api.updateSettings({
+              themeMode: getSelectedMode(),
+              newTabUrl: urlInput ? urlInput.value : ''
+            });
+            fillForm(next);
+            setStatus('设置已保存。', 'success');
+          } catch (error) {
+            var message = error && error.message ? error.message : '保存失败，请检查地址格式。';
+            setStatus(message, 'error');
+          } finally {
+            saveButton.disabled = false;
+          }
+        });
+
+        loadSettings();
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,86 @@
+// 定义 Tab 类型
+export interface Tab {
+  id: number
+  title: string
+  url: string      // 新增：当前 URL
+  favicon?: string
+  active: boolean
+  isLoading: boolean // 新增：是否加载中
+  canGoBack: boolean // 新增：能否后退
+  canGoForward: boolean // 新增：能否前进
+  isPinned: boolean
+}
+
+export interface NavigationState {
+  url: string
+  title?: string
+  canGoBack: boolean
+  canGoForward: boolean
+  isLoading: boolean
+  favicon?: string
+}
+
+// 扩展 Window 接口
+declare global {
+  interface ImportMetaEnv {
+    readonly VITE_THEME_MODE?: string
+  }
+
+  interface ImportMeta {
+    readonly env: ImportMetaEnv
+  }
+
+  interface Window {
+    electron: {
+      ipcRenderer: {
+        on: (channel: string, listener: (event: any, ...args: any[]) => void) => void
+        send: (channel: string, ...args: any[]) => void
+        removeListener: (channel: string, listener: (event: any, ...args: any[]) => void) => void
+        removeAllListeners: (channel: string) => void
+      }
+    }
+    api: {
+      navigate: (url: string) => void
+      resizeView: (bounds: { x: number; y: number; width: number; height: number }) => void
+      tabSelect: (id: number) => void
+      tabClose: (id: number) => void
+      tabNew: (url?: string) => void
+      setTheme: (color: string) => void
+      setMode: (mode: 'light' | 'dark' | 'system') => void
+      getSettings: () => Promise<{
+        themeMode: 'light' | 'dark' | 'system'
+        newTabUrl: string
+      }>
+      updateSettings: (patch: {
+        themeMode?: 'light' | 'dark' | 'system'
+        newTabUrl?: string
+      }) => Promise<{
+        themeMode: 'light' | 'dark' | 'system'
+        newTabUrl: string
+      }>
+      openMenu: (anchor: { x: number; y: number; width: number; height: number }) => void
+      menuAction: (action: string) => Promise<{ zoomPercent?: number; closeMenu?: boolean }>
+      getMenuState: () => Promise<{ zoomPercent: number; mode: 'light' | 'dark' }>
+      // 新增导航控制
+      goBack: () => void
+      goForward: () => void
+      reload: () => void
+      stop: () => void
+      // 获取 Brain WebSocket URL
+      getBrainUrl: () => Promise<string>
+      getDownloads: () => Promise<{
+        id: string
+        url: string
+        filename: string
+        receivedBytes: number
+        totalBytes: number
+        state: 'progressing' | 'completed' | 'cancelled' | 'interrupted'
+        savePath?: string
+        startedAt: number
+      }[]>
+      downloadAction: (action: 'show' | 'open' | 'cancel', id: string) => Promise<{ ok: boolean }>
+    }
+  }
+}
+
+export {}
