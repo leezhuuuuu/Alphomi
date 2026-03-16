@@ -24,6 +24,7 @@ tmp/
 logs/
 artifacts/
 test/_llm_file_edit_run_*/
+docs/plans/
 
 config.yaml
 .env

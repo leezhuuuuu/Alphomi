@@ -2,6 +2,14 @@
 
 Alphomi is an open local agent workspace that combines a desktop browser shell, a Playwright execution driver, and a Python brain service into one product.
 
+## Screenshots
+
+Alphomi ships with both light and dark desktop themes for the browser workspace and AI sidebar.
+
+| Light Mode | Dark Mode |
+| --- | --- |
+| ![Alphomi light mode](docs/images/alphomi-light-mode.png) | ![Alphomi dark mode](docs/images/alphomi-dark-mode.png) |
+
 ## What It Does
 
 - Runs as a local desktop app with browser tabs, address bar, downloads, and a live AI sidebar
