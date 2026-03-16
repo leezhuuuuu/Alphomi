@@ -1,0 +1,35 @@
+name: Feature request
+description: Propose an improvement to Alphomi
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or opportunity
+      description: What user or contributor pain point does this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the behavior or workflow you want.
+    validations:
+      required: true
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impact area
+      options:
+        - desktop UX
+        - browser automation
+        - agent orchestration
+        - packaging and distribution
+        - docs and contributor workflow
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What other approaches did you consider?

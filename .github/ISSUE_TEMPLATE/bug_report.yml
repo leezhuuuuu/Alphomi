@@ -1,0 +1,54 @@
+name: Bug report
+description: Report a reproducible problem in Alphomi
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened, and what did you expect instead?
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - desktop
+        - driver
+        - brain
+        - packaging
+        - docs
+        - contributor tooling
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction
+      description: Provide exact commands, steps, inputs, or URLs.
+      placeholder: |
+        1. Run ...
+        2. Open ...
+        3. Trigger ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs and screenshots
+      description: Paste relevant terminal output, app logs, or screenshots.
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Node version, Python version, and anything else that matters.
+      placeholder: |
+        macOS 15.x
+        Node 20.x
+        Python 3.11.x
+        pnpm 8.x
+    validations:
+      required: true
