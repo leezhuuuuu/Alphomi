@@ -1,0 +1,91 @@
+# Configuration Guide
+
+## Precedence
+
+Alphomi resolves configuration in this order:
+
+1. environment variables
+2. `config.yaml`
+3. `config.example.yaml` as the starting template for local setup
+
+`pnpm bootstrap` creates `config.yaml` automatically from `config.example.yaml` if it does not exist yet.
+
+The package copy in `packages/config/defaults/config.example.yaml` is the source of truth. If you need to refresh the root copy, run `pnpm sync:config-template`.
+
+## Main Sections
+
+### `driver`
+
+Controls the Playwright execution service.
+
+Common settings:
+
+- `PORT`
+- `HEADLESS`
+- `NEW_TAB_URL`
+- `DESKTOP_CONTROL_URL`
+- snapshot and visual inspection tuning
+
+### `user_data`
+
+Controls cookies and localStorage persistence.
+
+Common settings:
+
+- `enabled`
+- `mode`
+- `storage_path`
+- `save_interval_sec`
+- `local_storage_scope`
+
+### `brain`
+
+Controls the agent runtime and LLM integration.
+
+Common settings:
+
+- `PORT`
+- `WORKFLOW_MODE`
+- `CONTEXT_COMPRESSION_THRESHOLD_RATIO`
+- `PRAS_URL`
+- `LLM_API_KEY`
+- `LLM_BASE_URL`
+- `LLM_MODEL`
+- trace and logging directories
+
+### `desktop`
+
+Controls Electron-shell-specific behavior.
+
+Common settings:
+
+- `DESKTOP_CONTROL_PORT`
+- `NEW_TAB_URL`
+- `ELECTRON_RENDERER_URL`
+- `VITE_THEME_MODE`
+
+### `skills`
+
+Controls the optional skills registry integration used by the Brain.
+
+Common settings:
+
+- `REGISTRY_URL`
+- `INSTALL_DIR`
+
+## LLM Configuration
+
+The Brain expects an OpenAI-compatible endpoint. `LLM_BASE_URL` can be either:
+
+- a base URL like `https://provider.example/v1`
+- a full endpoint like `https://provider.example/v1/chat/completions`
+- a full responses endpoint like `https://provider.example/v1/responses`
+
+If the optional LLM E2E test is run without a valid `LLM_BASE_URL`, the test skips with an explanatory message.
+
+## Recommended Local Defaults
+
+- Keep `HEADLESS: true` for smoke tests and CI.
+- Keep `user_data.enabled: false` for deterministic debugging unless you are actively testing persistence.
+- Enable `SAVE_LLM_TRACES` only when debugging model behavior, because traces can grow quickly.
+- Prefer `CONTEXT_COMPRESSION_THRESHOLD_RATIO: 0.8` unless you have a strong reason to tune memory pressure.
