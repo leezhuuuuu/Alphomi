@@ -15,7 +15,7 @@ from ..core.events import (
     ToolStartEvent,
 )
 from ..core.tool_base import BaseTool, RiskLevel
-from ..workflows.agent_node import AgentNodeWorkflow
+from ..workflows.agent_node import AgentNodeWorkflow, build_agent_node_system_prompt
 from ..utils.config import load_config_from_yaml
 from .todo_tool import _SESSION_TODOS, _SESSION_COMPLEX_TODOS
 
@@ -197,6 +197,7 @@ class DispatchSubAgentTool(BaseTool):
         if specific_skills:
             skills_line = f"\nSpecific Skills to load: {', '.join(specific_skills)}"
 
+        agent_prompt = build_agent_node_system_prompt()
         system_prompt = (
             "Identity\n"
             f"You are a specialized worker agent. Your role is: {role}.\n\n"
@@ -207,15 +208,12 @@ class DispatchSubAgentTool(BaseTool):
             "YOUR ASSIGNMENT:\n"
             f"You are solely responsible for Task #{resolved_index}: \"{task_desc}\".\n"
             "Do NOT attempt to solve other tasks in the global plan.\n\n"
-            "Capabilities\n"
-            "1. Browser tools: navigate, click, type, snapshot.\n"
-            "2. Local planning: you may use manage_todos for a local plan.\n"
-            "3. Skills: you can use manage_skills to learn new capabilities."
+            "Operational Prompt\n"
+            f"{agent_prompt}\n\n"
+            "Assignment Notes\n"
+            "Use the Operational Prompt above as your active tool and behavior policy.\n"
             f"{skills_line}\n\n"
-            "Operational Rules\n"
-            "1. Explore first: snapshot before interactions.\n"
-            "2. Self-correction: recover from failures when possible.\n"
-            "3. Final output must follow this requirement:\n"
+            "Final Output Requirement\n"
             f"{output_requirement}\n"
         )
 

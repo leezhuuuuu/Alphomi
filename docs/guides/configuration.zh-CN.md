@@ -66,6 +66,22 @@ Alphomi 按以下顺序解析配置：
 - `ELECTRON_RENDERER_URL`
 - `VITE_THEME_MODE`
 
+## 工具开关
+
+工具启用/禁用状态**不会**保存在 `config.yaml` 里。
+
+- 设置页会把工具开关持久化到 Desktop 自己的应用设置文件中。
+- Desktop 进程会把“工具状态”这部分再同步到一份共享运行时文件，供 Driver 和 Brain 读取，从而避免三层各维护一套真相源。
+- 在开发环境里，这份共享文件位于 `temp/tool-settings.json`。
+- 在打包产物里，Desktop 会通过 `ALPHOMI_TOOL_SETTINGS_PATH` 把对应路径传给 Driver 和 Brain。
+
+行为影响：
+
+- 被禁用的工具会从 Driver 默认的 `/tools` 发现结果中移除。
+- 即使某个客户端缓存了旧的工具列表，只要工具已被禁用，真正执行时仍然会被拒绝。
+- Brain 会把被禁用工具同时从运行时 tool schema 和系统提示词引导中收敛掉，避免继续推荐不可用工具。
+- 对新回合来说，设置会立即生效；如果在某个回合进行中途禁用了工具，后续针对该工具的调用也会被拦截。
+
 ### `skills`
 
 用于控制 Brain 可选的 skills registry 集成。

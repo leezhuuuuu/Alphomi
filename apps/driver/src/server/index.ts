@@ -4,6 +4,7 @@ import { marked } from 'marked';
 import { SessionManager } from './core/session';
 import { ToolHandlers } from './handlers';
 import { TOOLS, ToolName } from '../common/tools';
+import { isToolEnabled } from '../common/tool-settings';
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { createErrorResponse, ErrorCode, ErrorResponse } from '../types/error';
@@ -23,12 +24,17 @@ app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 // 2. 获取工具列表 (REST API 能力源头)
 app.get('/tools', (req, res) => {
+  const includeDisabled = req.query.includeDisabled === '1' || req.query.includeDisabled === 'true'
   // 将 Zod 定义转换为 JSON Schema
-  const tools = Object.values(TOOLS).map((tool: any) => ({
-    name: tool.name,
-    description: tool.description,
-    inputSchema: zodToJsonSchema(tool.inputSchema)
-  }));
+  const tools = Object.values(TOOLS)
+    .map((tool: any) => ({
+      name: tool.name,
+      description: tool.description,
+      category: tool.category || null,
+      enabled: isToolEnabled(tool.name),
+      inputSchema: zodToJsonSchema(tool.inputSchema)
+    }))
+    .filter((tool) => includeDisabled || tool.enabled)
   res.json({ success: true, data: { tools } });
 });
 
@@ -466,6 +472,13 @@ app.post('/sessions/:id/tools/:toolName', async (req, res) => {
   if (!toolDef) {
     const errorResponse = createErrorResponse(new Error(`Tool '${toolName}' not found`), ErrorCode.UNKNOWN_ERROR);
     return res.status(400).json(errorResponse);
+  }
+  if (!isToolEnabled(toolName)) {
+    const errorResponse = createErrorResponse(
+      new Error(`Tool '${toolName}' is disabled in settings`),
+      ErrorCode.UNKNOWN_ERROR
+    );
+    return res.status(403).json(errorResponse);
   }
 
   // 校验参数 (Zod)

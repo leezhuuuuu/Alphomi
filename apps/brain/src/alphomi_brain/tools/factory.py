@@ -54,7 +54,7 @@ async def _load_remote_tools_once() -> bool:
     print(f"🔎 [Factory] Using Driver at: {pras_url}")
 
     async with httpx.AsyncClient(timeout=2.5) as client:
-        resp = await client.get(f"{pras_url}/tools")
+        resp = await client.get(f"{pras_url}/tools", params={"includeDisabled": "1"})
         remote_tools_data = resp.json().get("data", {}).get("tools", [])
 
     loaded = 0
@@ -98,9 +98,8 @@ async def initialize_tools_from_config():
     """
     registry.clear()
 
-    # 1. 无视 ENABLED_TOOLS，始终加载全部工具
-    mapped_enabled_set = set()
-    is_all = True
+    # 工具启用/禁用由运行时配置控制。这里始终加载完整工具目录，
+    # 这样用户在设置页重新启用某个工具时，不需要重启 Brain。
 
     # 3. 注册本地工具（立即可用）
     _register_local_tools()

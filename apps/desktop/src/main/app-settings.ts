@@ -1,12 +1,20 @@
 import { app } from 'electron'
 import fs from 'fs'
 import path from 'path'
+import {
+  ToolStateMap,
+  getDefaultToolStates,
+  mergeToolStates,
+  normalizeToolStates,
+  syncSharedToolSettings
+} from './tool-settings'
 
 export type ThemeMode = 'light' | 'dark' | 'system'
 
 export type AppSettings = {
   themeMode: ThemeMode
   newTabUrl: string
+  toolStates: ToolStateMap
 }
 
 const SETTINGS_FILENAME = 'app-settings.json'
@@ -14,7 +22,8 @@ const DEFAULT_NEW_TAB_URL = process.env.NEW_TAB_URL || 'https://www.google.com'
 
 const DEFAULT_SETTINGS: AppSettings = {
   themeMode: 'light',
-  newTabUrl: DEFAULT_NEW_TAB_URL
+  newTabUrl: DEFAULT_NEW_TAB_URL,
+  toolStates: getDefaultToolStates()
 }
 
 let cachedSettings: AppSettings | null = null
@@ -71,13 +80,18 @@ export function validateNewTabUrl(value: unknown): string {
 
 function sanitizeStoredSettings(value: unknown): AppSettings {
   if (!value || typeof value !== 'object') {
-    return { ...DEFAULT_SETTINGS }
+    return {
+      themeMode: DEFAULT_SETTINGS.themeMode,
+      newTabUrl: DEFAULT_SETTINGS.newTabUrl,
+      toolStates: getDefaultToolStates()
+    }
   }
 
   const record = value as Partial<AppSettings>
   return {
     themeMode: normalizeThemeMode(record.themeMode),
-    newTabUrl: normalizeStoredNewTabUrl(record.newTabUrl)
+    newTabUrl: normalizeStoredNewTabUrl(record.newTabUrl),
+    toolStates: normalizeToolStates(record.toolStates)
   }
 }
 
@@ -91,8 +105,14 @@ export function loadAppSettings(): AppSettings {
     const raw = fs.readFileSync(filePath, 'utf8')
     cachedSettings = sanitizeStoredSettings(JSON.parse(raw))
   } catch {
-    cachedSettings = { ...DEFAULT_SETTINGS }
+    cachedSettings = {
+      themeMode: DEFAULT_SETTINGS.themeMode,
+      newTabUrl: DEFAULT_SETTINGS.newTabUrl,
+      toolStates: getDefaultToolStates()
+    }
   }
+
+  syncSharedToolSettings(cachedSettings.toolStates)
 
   return cachedSettings
 }
@@ -105,12 +125,16 @@ export function updateAppSettings(patch: Partial<AppSettings>): AppSettings {
       : current.themeMode,
     newTabUrl: Object.prototype.hasOwnProperty.call(patch, 'newTabUrl')
       ? validateNewTabUrl(patch.newTabUrl)
-      : current.newTabUrl
+      : current.newTabUrl,
+    toolStates: Object.prototype.hasOwnProperty.call(patch, 'toolStates')
+      ? mergeToolStates(current.toolStates, patch.toolStates)
+      : current.toolStates
   }
 
   const filePath = getSettingsPath()
   ensureSettingsDir(filePath)
   fs.writeFileSync(filePath, JSON.stringify(next, null, 2), 'utf8')
+  syncSharedToolSettings(next.toolStates)
   cachedSettings = next
   return next
 }

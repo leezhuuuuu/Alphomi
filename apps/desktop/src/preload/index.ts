@@ -19,8 +19,13 @@ const api = {
   setTheme: (color: string) => ipcRenderer.send('ui-theme-set', color),
   setMode: (mode: 'light' | 'dark' | 'system') => ipcRenderer.send('ui-mode-set', mode),
   getSettings: () => ipcRenderer.invoke('settings-get'),
-  updateSettings: (patch: { themeMode?: 'light' | 'dark' | 'system'; newTabUrl?: string }) =>
+  updateSettings: (patch: {
+    themeMode?: 'light' | 'dark' | 'system'
+    newTabUrl?: string
+    toolStates?: Record<string, boolean>
+  }) =>
     ipcRenderer.invoke('settings-update', patch),
+  getToolCatalog: () => ipcRenderer.invoke('settings-tool-catalog'),
   openMenu: (anchor: { x: number; y: number; width: number; height: number }) =>
     ipcRenderer.send('menu-open', anchor),
   menuAction: (action: string) => ipcRenderer.invoke('menu-action', action),

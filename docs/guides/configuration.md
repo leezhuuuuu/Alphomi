@@ -66,6 +66,22 @@ Common settings:
 - `ELECTRON_RENDERER_URL`
 - `VITE_THEME_MODE`
 
+## Tool Toggles
+
+Tool enablement is intentionally not stored in `config.yaml`.
+
+- The Settings page persists tool toggles in the Desktop app settings file.
+- The Desktop process mirrors the tool-state subset into a shared runtime file so the Driver and Brain can react without maintaining separate sources of truth.
+- In development, that shared file lives at `temp/tool-settings.json`.
+- In packaged builds, the Desktop process passes an app-specific path to the Driver and Brain through `ALPHOMI_TOOL_SETTINGS_PATH`.
+
+Behavioral impact:
+
+- Disabled tools are removed from the Driver's default `/tools` discovery response.
+- Disabled tools remain blocked at execution time even if a stale client still tries to call them.
+- The Brain filters disabled tools out of the runtime tool schema and also trims prompt guidance so it does not keep recommending unavailable tools.
+- Changes apply to new turns immediately, and an in-flight tool call is still rejected if it targets a tool that was disabled mid-run.
+
 ### `skills`
 
 Controls the optional skills registry integration used by the Brain.

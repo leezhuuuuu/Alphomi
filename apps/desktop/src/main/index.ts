@@ -23,6 +23,7 @@ import axios from 'axios'
 import { loadUserDataConfig, UserDataConfig } from './user-data-config'
 import { buildStorageState, loadStorageState, saveStorageState } from './storage-state'
 import { AppSettings, loadAppSettings, ThemeMode, updateAppSettings } from './app-settings'
+import { getToolCatalogSections } from './tool-settings'
 
 // 开启 CDP，使用高位端口避免冲突
 const CDP_PORT = 19222
@@ -933,6 +934,9 @@ app.whenReady().then(async () => {
       applyThemeMode(next.themeMode, { persist: false })
     }
     return next
+  })
+  ipcMain.handle('settings-tool-catalog', () => {
+    return getToolCatalogSections()
   })
 
   app.on('activate', function () {

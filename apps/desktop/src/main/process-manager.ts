@@ -3,6 +3,7 @@ import { spawn, ChildProcess } from 'child_process'
 import path from 'path'
 import { is } from '@electron-toolkit/utils'
 import { existsSync } from 'fs'
+import { resolveSharedToolSettingsPath } from './tool-settings'
 
 // 开发环境固定端口，生产环境才动态分配
 export const DRIVER_PORT = 13000  // 🟢 改为高位端口避免冲突
@@ -71,6 +72,7 @@ export class ProcessManager {
         ...process.env,
         PORT: DRIVER_PORT.toString(),
         PORT_REGISTRY_PATH: getRegistryPath(),
+        ALPHOMI_TOOL_SETTINGS_PATH: resolveSharedToolSettingsPath(),
         ...(is.dev
           ? {}
           : {
@@ -101,6 +103,7 @@ export class ProcessManager {
       // 关键：告诉 Brain，Driver 在哪个端口
       PRAS_URL: `http://127.0.0.1:${DRIVER_PORT}`,
       PORT_REGISTRY_PATH: getRegistryPath(),
+      ALPHOMI_TOOL_SETTINGS_PATH: resolveSharedToolSettingsPath(),
       BRAIN_RELOAD: is.dev ? '1' : '0',
       PYTHONPATH: brainSrcPath
     }

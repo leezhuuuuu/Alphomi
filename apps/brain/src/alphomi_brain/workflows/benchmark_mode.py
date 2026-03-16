@@ -5,17 +5,53 @@ import os
 from ..core.context import CONTEXT_COMPRESSION_THRESHOLD
 from ..core.context import MAX_CONTEXT_TOKENS
 from ..core.context import estimate_context_tokens
+from .prompt_utils import format_tool_list, resolve_available_tool_names
 from .streaming_workflow import StreamingWorkflow
 
+BENCHMARK_LOCAL_TOOLS = {
+    "manage_todos",
+}
 
-BENCHMARK_SYSTEM_PROMPT = """You are a browser benchmark agent running WebArena-Verified tasks.
+BENCHMARK_BROWSER_TOOLS = {
+    "browser_navigate",
+    "browser_navigate_back",
+    "browser_click",
+    "browser_hover",
+    "browser_type",
+    "browser_fill_form",
+    "browser_select_option",
+    "browser_drag",
+    "browser_wait_for",
+    "browser_take_screenshot",
+    "browser_handle_dialog",
+    "browser_press_key",
+    "browser_tabs",
+    "browser_snapshot",
+    "browser_close",
+}
+
+BENCHMARK_DEFAULT_TOOL_NAMES = BENCHMARK_LOCAL_TOOLS | BENCHMARK_BROWSER_TOOLS
+
+
+def build_benchmark_system_prompt(available_tool_names: set[str] | None = None) -> str:
+    names = resolve_available_tool_names(BENCHMARK_DEFAULT_TOOL_NAMES, available_tool_names)
+    if "browser_snapshot" in names:
+        inspection_rule = (
+            "2. Explore first. Start with browser_snapshot before risky interactions unless the page state is already obvious."
+        )
+    else:
+        inspection_rule = (
+            "2. Explore first. Start with the best available browser inspection step before risky interactions unless the page state is already obvious."
+        )
+
+    return f"""You are a browser benchmark agent running WebArena-Verified tasks.
 
 # Mission
 Complete the assigned web task using browser tools only, then return a single valid JSON object as the final answer.
 
 # Hard Rules
 1. Use browser tools only for task execution. Do not use local shell, file editing, skills, or sub-agents.
-2. Explore first. Start with browser_snapshot before risky interactions unless the page state is already obvious.
+{inspection_rule}
 3. Prefer direct navigation when a URL is known and reliable.
 4. When refs are ambiguous, stale, duplicated, or state-sensitive, refresh the DOM snapshot or use nearby stable refs instead of switching to visual tools.
 5. Behave like a user. Do not rely on hidden-page scripting tricks.
@@ -38,7 +74,7 @@ Complete the assigned web task using browser tools only, then return a single va
 
 # Tool Policy
 - Allowed planning tool: manage_todos.
-- Allowed browser tools: navigation, click, type, tabs, wait, key press, form fill, select, hover, drag, screenshots, snapshots, dialog handling.
+- Allowed tools in this run: {format_tool_list(names)}.
 - Not allowed: local execution tools, file modification tools, skill tools, sub-agent tools.
 
 # Task Completion Output
@@ -80,29 +116,14 @@ Use one of:
 """
 
 
+BENCHMARK_SYSTEM_PROMPT = build_benchmark_system_prompt()
+
+
 class BenchmarkWorkflow(StreamingWorkflow):
     SYSTEM_PROMPT = BENCHMARK_SYSTEM_PROMPT
-    ALLOWED_TOOL_NAMES = {
-        "manage_todos",
-    }
+    ALLOWED_TOOL_NAMES = BENCHMARK_LOCAL_TOOLS
     ALLOW_BROWSER_TOOLS = True
-    ALLOWED_BROWSER_TOOLS = {
-        "browser_navigate",
-        "browser_navigate_back",
-        "browser_click",
-        "browser_hover",
-        "browser_type",
-        "browser_fill_form",
-        "browser_select_option",
-        "browser_drag",
-        "browser_wait_for",
-        "browser_take_screenshot",
-        "browser_handle_dialog",
-        "browser_press_key",
-        "browser_tabs",
-        "browser_snapshot",
-        "browser_close",
-    }
+    ALLOWED_BROWSER_TOOLS = BENCHMARK_BROWSER_TOOLS
 
     _FULL_TOOL_RESULTS_TO_KEEP = 6
     _LONG_TOOL_OUTPUT_THRESHOLD = 1200
@@ -133,6 +154,9 @@ class BenchmarkWorkflow(StreamingWorkflow):
         "Context checkpoint: earlier turn details were compacted to keep the request inside the model context window. "
         "Use this summary plus current browser state to continue without repeating old exploration."
     )
+
+    def get_system_prompt(self) -> str:
+        return build_benchmark_system_prompt(self.get_available_tool_names())
 
     def _compact_tool_output(
         self,

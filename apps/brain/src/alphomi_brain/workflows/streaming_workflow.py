@@ -24,6 +24,7 @@ from ..core.guard import guard
 from ..core.llm_client import CustomLLMClient
 from ..core.pras_client import PrasClient
 from ..core.tool_base import registry
+from ..utils.tool_settings import is_tool_enabled
 from .base import BaseWorkflow
 
 TYPING_BASE = int(os.getenv("TYPING_BASE", "1"))
@@ -59,13 +60,19 @@ class StreamingWorkflow(BaseWorkflow):
         return build_context_usage_payload(full_system_prompt, request_history)
 
     def _is_tool_allowed(self, name: str) -> bool:
+        base_allowed = False
         if name in self.ALLOWED_TOOL_NAMES:
-            return True
-        if self.ALLOW_BROWSER_TOOLS and name.startswith("browser_"):
+            base_allowed = True
+        elif self.ALLOW_BROWSER_TOOLS and name.startswith("browser_"):
             if not self.ALLOWED_BROWSER_TOOLS:
-                return True
-            return name in self.ALLOWED_BROWSER_TOOLS
-        return False
+                base_allowed = True
+            else:
+                base_allowed = name in self.ALLOWED_BROWSER_TOOLS
+
+        if not base_allowed:
+            return False
+
+        return is_tool_enabled(name)
 
     def _get_tools_schema(self) -> list[dict]:
         schemas = []
@@ -73,6 +80,9 @@ class StreamingWorkflow(BaseWorkflow):
             if self._is_tool_allowed(tool.name):
                 schemas.append(tool.to_openai_schema())
         return schemas
+
+    def get_available_tool_names(self) -> Set[str]:
+        return {tool.name for tool in registry.get_all_tools() if self._is_tool_allowed(tool.name)}
 
     def get_system_prompt(self) -> str:
         return self.SYSTEM_PROMPT

@@ -197,6 +197,187 @@
         line-height: 1.6;
       }
 
+      .callout {
+        display: grid;
+        gap: 6px;
+        padding: 16px 18px;
+        border-radius: 18px;
+        border: 1px solid var(--border);
+        background: color-mix(in srgb, var(--panel-strong) 88%, transparent);
+      }
+
+      .callout-title {
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .callout-desc {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.65;
+      }
+
+      .tool-sections {
+        display: grid;
+        gap: 16px;
+      }
+
+      .tool-section-card {
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 18px;
+        background: color-mix(in srgb, var(--panel-strong) 88%, transparent);
+      }
+
+      .tool-section-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 14px;
+      }
+
+      .tool-section-copy {
+        display: grid;
+        gap: 6px;
+      }
+
+      .tool-section-title {
+        margin: 0;
+        font-size: 16px;
+        letter-spacing: -0.02em;
+      }
+
+      .tool-section-actions {
+        display: inline-flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .ghost-btn {
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 8px 12px;
+        background: transparent;
+        color: var(--text);
+        font: inherit;
+        font-size: 13px;
+        cursor: pointer;
+        transition: border-color 0.2s ease, background 0.2s ease;
+      }
+
+      .ghost-btn:hover {
+        border-color: var(--border-strong);
+        background: var(--accent-soft);
+      }
+
+      .tool-grid {
+        display: grid;
+        gap: 12px;
+      }
+
+      .tool-card {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 16px;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        background: color-mix(in srgb, var(--panel-strong) 84%, transparent);
+      }
+
+      .tool-copy {
+        min-width: 0;
+      }
+
+      .tool-title-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .tool-title {
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .tool-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .tool-desc {
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.65;
+      }
+
+      .toggle {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .toggle input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .toggle-track {
+        position: relative;
+        width: 46px;
+        height: 28px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: color-mix(in srgb, var(--panel-strong) 78%, transparent);
+        transition: background 0.2s ease, border-color 0.2s ease;
+      }
+
+      .toggle-track::after {
+        content: '';
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #ffffff;
+        box-shadow: 0 4px 10px rgba(18, 24, 28, 0.16);
+        transition: transform 0.2s ease;
+      }
+
+      .toggle input:checked + .toggle-track {
+        border-color: color-mix(in srgb, var(--accent) 40%, white);
+        background: color-mix(in srgb, var(--accent) 88%, white 12%);
+      }
+
+      .toggle input:checked + .toggle-track::after {
+        transform: translateX(18px);
+      }
+
+      .toggle-label {
+        min-width: 34px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 600;
+        text-align: right;
+      }
+
       .footer {
         display: flex;
         align-items: center;
@@ -321,6 +502,24 @@
             <p class="hint">支持直接输入域名，保存时会自动补全为 `https://`。也支持 `about:blank`。</p>
           </section>
 
+          <section class="section">
+            <div class="section-head">
+              <h2 class="section-title">工具开关</h2>
+              <p class="section-desc">
+                每个工具都可以单独启用或禁用。禁用后，它会从可用工具 schema 和系统提示词中收敛掉，并在真正执行时被拒绝。
+              </p>
+            </div>
+
+            <div class="callout">
+              <div class="callout-title">生效方式</div>
+              <div class="callout-desc">
+                设置会持久化保存，并同步给 Desktop、Driver、Brain 三层。新的回合会立刻感知这些变化；运行中的回合如果尝试调用已禁用工具，也会被安全拦截。
+              </div>
+            </div>
+
+            <div class="tool-sections" id="tool-sections"></div>
+          </section>
+
           <div class="footer">
             <div class="status" id="status" aria-live="polite"></div>
             <button class="save-btn" id="save-btn" type="submit">保存设置</button>
@@ -336,9 +535,12 @@
         var status = document.getElementById('status');
         var saveButton = document.getElementById('save-btn');
         var urlInput = document.getElementById('new-tab-url');
+        var toolSectionsContainer = document.getElementById('tool-sections');
         var themeInputs = Array.prototype.slice.call(
           document.querySelectorAll('input[name="theme-mode"]')
         );
+        var toolCatalog = [];
+        var toolStates = {};
 
         function resolveTheme(mode) {
           if (
@@ -372,6 +574,75 @@
           return selected ? selected.value : 'light';
         }
 
+        function escapeHtml(value) {
+          return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+        }
+
+        function cloneToolStates(nextStates) {
+          toolStates = Object.assign({}, nextStates || {});
+        }
+
+        function collectToolStates() {
+          return Object.assign({}, toolStates);
+        }
+
+        function renderToolSections() {
+          if (!toolSectionsContainer) return;
+          if (!toolCatalog.length) {
+            toolSectionsContainer.innerHTML = '';
+            return;
+          }
+
+          var html = toolCatalog
+            .map(function (section) {
+              var toolsHtml = (section.tools || [])
+                .map(function (tool) {
+                  var checked = toolStates[tool.name] !== false;
+                  return (
+                    '<div class="tool-card">' +
+                    '<div class="tool-copy">' +
+                    '<div class="tool-title-row">' +
+                    '<span class="tool-title">' + escapeHtml(tool.label) + '</span>' +
+                    '<span class="tool-badge">' + escapeHtml(tool.scope) + '</span>' +
+                    '</div>' +
+                    '<div class="tool-desc">' + escapeHtml(tool.description) + '</div>' +
+                    '</div>' +
+                    '<label class="toggle">' +
+                    '<input type="checkbox" data-tool-name="' + escapeHtml(tool.name) + '"' + (checked ? ' checked' : '') + ' />' +
+                    '<span class="toggle-track"></span>' +
+                    '<span class="toggle-label">' + (checked ? 'On' : 'Off') + '</span>' +
+                    '</label>' +
+                    '</div>'
+                  );
+                })
+                .join('');
+
+              return (
+                '<section class="tool-section-card" data-section-id="' + escapeHtml(section.id) + '">' +
+                '<div class="tool-section-head">' +
+                '<div class="tool-section-copy">' +
+                '<h3 class="tool-section-title">' + escapeHtml(section.title) + '</h3>' +
+                '<p class="section-desc">' + escapeHtml(section.description) + '</p>' +
+                '</div>' +
+                '<div class="tool-section-actions">' +
+                '<button class="ghost-btn" type="button" data-section-action="enable" data-section-id="' + escapeHtml(section.id) + '">全部启用</button>' +
+                '<button class="ghost-btn" type="button" data-section-action="disable" data-section-id="' + escapeHtml(section.id) + '">全部禁用</button>' +
+                '</div>' +
+                '</div>' +
+                '<div class="tool-grid">' + toolsHtml + '</div>' +
+                '</section>'
+              );
+            })
+            .join('');
+
+          toolSectionsContainer.innerHTML = html;
+        }
+
         function fillForm(settings) {
           themeInputs.forEach(function (input) {
             input.checked = input.value === settings.themeMode;
@@ -379,17 +650,21 @@
           if (urlInput) {
             urlInput.value = settings.newTabUrl || '';
           }
+          cloneToolStates(settings.toolStates || {});
+          renderToolSections();
           applyPreview(settings.themeMode || 'light');
         }
 
         async function loadSettings() {
-          if (!window.api || !window.api.getSettings) {
+          if (!window.api || !window.api.getSettings || !window.api.getToolCatalog) {
             setStatus('无法读取设置：预加载 API 不可用。', 'error');
             return;
           }
 
           try {
-            var settings = await window.api.getSettings();
+            var result = await Promise.all([window.api.getSettings(), window.api.getToolCatalog()]);
+            var settings = result[0];
+            toolCatalog = result[1] || [];
             fillForm(settings);
           } catch (error) {
             setStatus('读取设置失败，请稍后重试。', 'error');
@@ -413,6 +688,37 @@
             });
         }
 
+        if (toolSectionsContainer) {
+          toolSectionsContainer.addEventListener('change', function (event) {
+            var target = event.target;
+            if (!target || target.tagName !== 'INPUT') return;
+            var name = target.getAttribute('data-tool-name');
+            if (!name) return;
+            toolStates[name] = Boolean(target.checked);
+            renderToolSections();
+            setStatus('');
+          });
+
+          toolSectionsContainer.addEventListener('click', function (event) {
+            var target = event.target;
+            if (!target || target.tagName !== 'BUTTON') return;
+            var action = target.getAttribute('data-section-action');
+            var sectionId = target.getAttribute('data-section-id');
+            if (!action || !sectionId) return;
+
+            var section = toolCatalog.find(function (item) {
+              return item.id === sectionId;
+            });
+            if (!section) return;
+
+            (section.tools || []).forEach(function (tool) {
+              toolStates[tool.name] = action === 'enable';
+            });
+            renderToolSections();
+            setStatus('');
+          });
+        }
+
         form.addEventListener('submit', async function (event) {
           event.preventDefault();
           if (!window.api || !window.api.updateSettings) {
@@ -426,7 +732,8 @@
           try {
             var next = await window.api.updateSettings({
               themeMode: getSelectedMode(),
-              newTabUrl: urlInput ? urlInput.value : ''
+              newTabUrl: urlInput ? urlInput.value : '',
+              toolStates: collectToolStates()
             });
             fillForm(next);
             setStatus('设置已保存。', 'success');

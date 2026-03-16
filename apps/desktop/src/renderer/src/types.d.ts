@@ -50,14 +50,30 @@ declare global {
       getSettings: () => Promise<{
         themeMode: 'light' | 'dark' | 'system'
         newTabUrl: string
+        toolStates: Record<string, boolean>
       }>
       updateSettings: (patch: {
         themeMode?: 'light' | 'dark' | 'system'
         newTabUrl?: string
+        toolStates?: Record<string, boolean>
       }) => Promise<{
         themeMode: 'light' | 'dark' | 'system'
         newTabUrl: string
+        toolStates: Record<string, boolean>
       }>
+      getToolCatalog: () => Promise<
+        {
+          id: string
+          title: string
+          description: string
+          tools: {
+            name: string
+            label: string
+            description: string
+            scope: 'browser' | 'brain'
+          }[]
+        }[]
+      >
       openMenu: (anchor: { x: number; y: number; width: number; height: number }) => void
       menuAction: (action: string) => Promise<{ zoomPercent?: number; closeMenu?: boolean }>
       getMenuState: () => Promise<{ zoomPercent: number; mode: 'light' | 'dark' }>

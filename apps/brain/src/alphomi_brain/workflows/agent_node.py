@@ -1,67 +1,119 @@
 from __future__ import annotations
 
+from .prompt_utils import format_tool_list, has_any, has_all, resolve_available_tool_names
 from .streaming_workflow import StreamingWorkflow
 
-AGENT_NODE_SYSTEM_PROMPT = """You are a specialized worker sub-agent.
 
-# Core Capabilities
-1. Browser Control: Navigate, click, type, and snapshot webpages.
-2. Local Planning: Use manage_todos for a small local plan if needed.
-3. Skill Extension: You can use manage_skills if needed.
+AGENT_NODE_LOCAL_TOOLS = {
+    "manage_todos",
+    "manage_skills",
+}
 
-# Core Rules
-1. Explore first: use browser_snapshot before interacting with pages.
-2. Certainty-first interaction policy:
-   - Use ref-based browser tools (browser_click/browser_type) only when all are true: snapshot has a unique stable ref, the action is not state-sensitive, and a mistaken click is low-risk.
-   - If any condition is not true, prefer visual tools first.
-3. Prefer browser_inspect_visual for uncertain or complex actions:
-   - Use it when refs are missing, stale, ambiguous, or repeated targets may collapse.
-   - Use it for position-dependent requests (for example "second item", "right-side icon", "button next to input").
-   - Use it for state-sensitive actions (for example enable/disable, check/uncheck, selected/unselected, open/closed, expanded/collapsed).
-   - browser_inspect_visual requires targetName and includeState. Always pass includeState=true or false explicitly.
-   - If the task depends on visible state, set includeState=true.
-   - If visualState already indicates the requested state is satisfied, avoid redundant clicks.
-   - If visualState is unclear, treat it as uncertainty; if you proceed, re-check after the action.
-   - Execute chosen visual targets with browser_click_point or browser_type_point.
-4. If the task is to answer a question about screenshot content, compare images, or inspect visual details without needing coordinates, use browser_ask_visual.
-   - browser_ask_visual requires question and answerMode.
-   - Provide captureScope, imageRefs, or both.
-   - Use answerMode="text" unless the task explicitly needs structured JSON.
-5. Browser-first policy:
-   - When a task involves opening or operating on webpages, default to browser_* tools.
-6. Navigation preference (stability-first, not absolute):
-   - If a reliable link/URL is available and you need to open or move to a page, prefer browser_navigate (or other direct navigation) over multi-step clicking.
-   - Use browser_click when direct navigation is not possible, not reliable, or the user explicitly wants clicking.
-   - Be flexible: choose the most robust path given the current page state.
-7. Search strategy (URL-first when appropriate):
-   - When a task requires using a search engine or a site's search, prefer direct URL query construction via browser_navigate when you know the query parameter pattern.
-   - This applies to common engines and platforms (e.g., Google, Bing, Baidu, and many site-specific searches).
-   - Fall back to snapshot + click/type when the URL pattern is unknown or unreliable.
-8. Focus: only complete the assigned task; do not plan unrelated tasks.
-9. Tool Limits:
-   - Allowed: browser_* tools, manage_todos, manage_skills.
-   - Not allowed: run_python_code, run_shell_command, manage_complex_todos, dispatch_sub_agent.
+AGENT_NODE_BROWSER_TOOLS = {
+    "browser_navigate",
+    "browser_click",
+    "browser_type",
+    "browser_snapshot",
+    "browser_tabs",
+    "browser_inspect_visual",
+    "browser_ask_visual",
+    "browser_click_point",
+    "browser_type_point",
+}
 
-# Output
-Output ONLY valid tool calls or a final answer to the user.
-"""
+AGENT_NODE_DEFAULT_TOOL_NAMES = AGENT_NODE_LOCAL_TOOLS | AGENT_NODE_BROWSER_TOOLS
+
+
+def build_agent_node_system_prompt(available_tool_names: set[str] | None = None) -> str:
+    names = resolve_available_tool_names(AGENT_NODE_DEFAULT_TOOL_NAMES, available_tool_names)
+
+    lines: list[str] = ["You are a specialized worker sub-agent.", "", "# Core Capabilities"]
+    capability_index = 1
+
+    if has_any(names, *AGENT_NODE_BROWSER_TOOLS):
+        lines.append(f"{capability_index}. Browser Control: use the available browser tools to complete the assigned task.")
+        capability_index += 1
+    if "manage_todos" in names:
+        lines.append(f"{capability_index}. Local Planning: use manage_todos for a small local plan if needed.")
+        capability_index += 1
+    if "manage_skills" in names:
+        lines.append(f"{capability_index}. Skill Extension: use manage_skills if you need more capability.")
+
+    lines.extend(["", "# Core Rules"])
+    rule_index = 1
+
+    if "browser_snapshot" in names:
+        lines.append(f"{rule_index}. Explore first: use browser_snapshot before interacting with pages.")
+        rule_index += 1
+    elif has_any(names, "browser_inspect_visual", "browser_ask_visual"):
+        lines.append(f"{rule_index}. Inspect visible state before risky actions using the available visual tools.")
+        rule_index += 1
+
+    if has_all(names, "browser_click", "browser_type", "browser_snapshot"):
+        lines.extend(
+            [
+                f"{rule_index}. Certainty-first interaction policy:",
+                "   - Use ref-based browser tools only when the snapshot gives a unique stable ref, the action is not state-sensitive, and a mistaken click is low-risk.",
+                "   - If that certainty is missing, prefer a safer inspection step first.",
+            ]
+        )
+        rule_index += 1
+
+    if has_any(names, "browser_inspect_visual", "browser_click_point", "browser_type_point"):
+        lines.append(f"{rule_index}. Prefer visual tools for uncertain or visually state-sensitive actions.")
+        if "browser_inspect_visual" in names:
+            lines.append(
+                "   - Use browser_inspect_visual when refs are missing, stale, ambiguous, repeated, position-dependent, or state-sensitive."
+            )
+        if has_any(names, "browser_click_point", "browser_type_point"):
+            lines.append("   - Execute the chosen target with browser_click_point or browser_type_point.")
+        rule_index += 1
+
+    if "browser_ask_visual" in names:
+        lines.extend(
+            [
+                f"{rule_index}. Use browser_ask_visual for screenshot understanding, visual comparison, or visual Q&A when coordinates are not needed.",
+                "   - Provide captureScope, imageRefs, or both, and use answerMode=\"text\" unless structured JSON is required.",
+            ]
+        )
+        rule_index += 1
+
+    if has_any(names, *AGENT_NODE_BROWSER_TOOLS):
+        lines.append(f"{rule_index}. Browser-first policy: default to the available browser_* tools for webpage tasks.")
+        rule_index += 1
+
+    if "browser_navigate" in names:
+        lines.extend(
+            [
+                f"{rule_index}. Prefer browser_navigate when you already know a reliable destination URL; use clicking only when direct navigation is not appropriate.",
+                f"{rule_index + 1}. When a search URL pattern is known, prefer direct query construction before slower manual search flows.",
+            ]
+        )
+        rule_index += 2
+
+    lines.extend(
+        [
+            f"{rule_index}. Focus strictly on the assigned task. Do not solve unrelated work.",
+            f"{rule_index + 1}. Tool Limits:",
+            f"   - Allowed: {format_tool_list(names)}.",
+            "   - Not allowed: any tool not listed above.",
+            "",
+            "# Output",
+            "Output ONLY valid tool calls or a final answer to the user.",
+        ]
+    )
+
+    return "\n".join(lines)
+
+
+AGENT_NODE_SYSTEM_PROMPT = build_agent_node_system_prompt()
 
 
 class AgentNodeWorkflow(StreamingWorkflow):
     SYSTEM_PROMPT = AGENT_NODE_SYSTEM_PROMPT
-    ALLOWED_TOOL_NAMES = {
-        "manage_todos",
-        "manage_skills",
-    }
+    ALLOWED_TOOL_NAMES = AGENT_NODE_LOCAL_TOOLS
     ALLOW_BROWSER_TOOLS = True
-    ALLOWED_BROWSER_TOOLS = {
-        "browser_navigate",
-        "browser_click",
-        "browser_type",
-        "browser_snapshot",
-        "browser_tabs",
-        "browser_inspect_visual",
-        "browser_ask_visual",
-        "browser_click_point",
-        "browser_type_point",
-    }
+    ALLOWED_BROWSER_TOOLS = AGENT_NODE_BROWSER_TOOLS
+
+    def get_system_prompt(self) -> str:
+        return build_agent_node_system_prompt(self.get_available_tool_names())
