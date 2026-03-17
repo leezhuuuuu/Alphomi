@@ -506,6 +506,9 @@ export async function testLLMConnection(input?: LLMConnectionTestInput): Promise
       ? settings.profiles.find((candidate) => candidate.id === input.profileId) ?? null
       : settings.profiles.find((candidate) => candidate.id === settings.activeProfileId) ?? settings.profiles[0] ?? null
 
+  const hasExplicitApiKey = Boolean(input && Object.prototype.hasOwnProperty.call(input, 'apiKey'))
+  const mergedApiKey = hasExplicitApiKey ? trimOptionalString(input?.apiKey) : effective.apiKey
+
   const merged: EffectiveLLMSettings = {
     ...effective,
     providerType: profile?.providerType ?? effective.providerType,
@@ -514,8 +517,8 @@ export async function testLLMConnection(input?: LLMConnectionTestInput): Promise
     baseUrl: trimOptionalString(input?.baseUrl) || effective.baseUrl,
     model: trimOptionalString(input?.model) || effective.model,
     endpointMode: normalizeEndpointMode(input?.endpointMode ?? effective.endpointMode),
-    apiKey: trimOptionalString(input?.apiKey) || effective.apiKey,
-    hasApiKey: Boolean(trimOptionalString(input?.apiKey) || effective.apiKey),
+    apiKey: mergedApiKey,
+    hasApiKey: Boolean(mergedApiKey),
     sources: effective.sources
   }
 

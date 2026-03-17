@@ -67,6 +67,9 @@ uv run --project "$ROOT_DIR/apps/brain" python "$ROOT_DIR/test/brain-tool-policy
 echo "[smoke] running brain llm settings smoke..."
 uv run --project "$ROOT_DIR/apps/brain" python "$ROOT_DIR/test/brain-llm-settings-smoke.py"
 
+echo "[smoke] running settings llm ui smoke..."
+node "$ROOT_DIR/test/settings-llm-ui-smoke.mjs"
+
 echo "[smoke] running optional LLM file-edit E2E..."
 python3 "$ROOT_DIR/test/llm_apply_patch_e2e.py"
 

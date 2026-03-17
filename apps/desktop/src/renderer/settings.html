@@ -281,6 +281,263 @@
         gap: 12px;
       }
 
+      .llm-shell {
+        display: grid;
+        gap: 16px;
+      }
+
+      .llm-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+
+      .llm-columns {
+        display: grid;
+        grid-template-columns: minmax(240px, 280px) minmax(0, 1fr);
+        gap: 16px;
+      }
+
+      .profile-list,
+      .llm-editor-card,
+      .effective-card,
+      .test-card {
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: color-mix(in srgb, var(--panel-strong) 88%, transparent);
+      }
+
+      .profile-list {
+        display: grid;
+        gap: 12px;
+        padding: 14px;
+        align-content: start;
+      }
+
+      .profile-card {
+        display: grid;
+        gap: 10px;
+        padding: 14px;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        background: color-mix(in srgb, var(--panel-strong) 80%, transparent);
+      }
+
+      .profile-card[data-active='true'] {
+        border-color: color-mix(in srgb, var(--accent) 42%, white);
+        box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 12%, transparent);
+      }
+
+      .profile-card-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .profile-select-btn {
+        display: grid;
+        gap: 6px;
+        width: 100%;
+        border: none;
+        padding: 0;
+        background: transparent;
+        color: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .profile-title {
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .profile-meta {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.6;
+        word-break: break-word;
+      }
+
+      .profile-badges {
+        display: inline-flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .source-pill,
+      .mini-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        padding: 4px 8px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+      }
+
+      .source-pill {
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+
+      .mini-pill {
+        border: 1px solid var(--border);
+        color: var(--muted);
+      }
+
+      .danger-btn {
+        border: 1px solid color-mix(in srgb, var(--danger) 25%, var(--border));
+        border-radius: 999px;
+        padding: 8px 12px;
+        background: transparent;
+        color: var(--danger);
+        font: inherit;
+        font-size: 12px;
+        cursor: pointer;
+      }
+
+      .danger-btn:hover {
+        background: color-mix(in srgb, var(--danger) 12%, transparent);
+      }
+
+      .profile-empty,
+      .editor-empty {
+        padding: 16px;
+        border: 1px dashed var(--border-strong);
+        border-radius: 16px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.7;
+      }
+
+      .llm-editor-card,
+      .effective-card,
+      .test-card {
+        padding: 18px;
+      }
+
+      .llm-editor-grid {
+        display: grid;
+        gap: 14px;
+      }
+
+      .field-grid {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .field-stack {
+        display: grid;
+        gap: 10px;
+      }
+
+      .field-stack[data-span='full'] {
+        grid-column: 1 / -1;
+      }
+
+      select.field {
+        appearance: none;
+      }
+
+      .provider-lockup {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .provider-text {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .inline-actions {
+        display: inline-flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .secret-note {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.65;
+      }
+
+      .effective-title,
+      .test-title {
+        margin: 0 0 10px;
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+
+      .effective-grid {
+        display: grid;
+        gap: 10px;
+      }
+
+      .effective-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 12px 0;
+        border-top: 1px solid var(--border);
+      }
+
+      .effective-row:first-child {
+        border-top: none;
+        padding-top: 0;
+      }
+
+      .effective-copy {
+        min-width: 0;
+        display: grid;
+        gap: 4px;
+      }
+
+      .effective-label {
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .effective-value {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.65;
+        word-break: break-word;
+      }
+
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      }
+
+      .test-card[data-tone='success'] {
+        border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
+      }
+
+      .test-card[data-tone='error'] {
+        border-color: color-mix(in srgb, var(--danger) 28%, var(--border));
+      }
+
+      .test-meta {
+        display: grid;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .test-row {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.65;
+        word-break: break-word;
+      }
+
       .tool-card {
         display: flex;
         align-items: flex-start;
@@ -433,6 +690,11 @@
           padding: 24px 16px 36px;
         }
 
+        .llm-columns,
+        .field-grid {
+          grid-template-columns: 1fr;
+        }
+
         .footer {
           flex-direction: column;
           align-items: stretch;
@@ -450,7 +712,7 @@
         <div class="eyebrow">Settings</div>
         <h1>设置</h1>
         <p class="intro">
-          这里只保留真正会生效的选项。当前版本先提供外观模式和新建标签页地址，两项都会直接影响应用行为。
+          这里只保留真正会生效的选项。当前版本可以在这里管理外观、新建标签页地址、LLM provider，以及工具可用性。
         </p>
 
         <form id="settings-form">
@@ -509,6 +771,35 @@
 
           <section class="section">
             <div class="section-head">
+              <h2 class="section-title">LLM Provider</h2>
+              <p class="section-desc">
+                在这里管理用户级的模型 provider profile。新的对话回合会自动读取最新设置；如果环境变量或 `config.yaml` 覆盖了某些字段，下面也会明确标出来。
+              </p>
+            </div>
+
+            <div class="llm-shell">
+              <div class="llm-toolbar">
+                <div class="callout">
+                  <div class="callout-title">存储方式</div>
+                  <div class="callout-desc">
+                    Base URL、模型名和 endpoint mode 会保存在本地设置里；API key 会单独保存在本机私有存储中。保存后，Desktop 和 Brain 都会读取同一份生效配置。
+                  </div>
+                </div>
+                <button class="ghost-btn" id="llm-add-profile" type="button">新增 Provider</button>
+              </div>
+
+              <div class="llm-columns">
+                <div class="profile-list" id="llm-profile-list"></div>
+                <div class="llm-editor-card" id="llm-profile-editor"></div>
+              </div>
+
+              <div class="effective-card" id="llm-effective-summary"></div>
+              <div class="test-card" id="llm-test-card"></div>
+            </div>
+          </section>
+
+          <section class="section">
+            <div class="section-head">
               <h2 class="section-title">工具开关</h2>
               <p class="section-desc">
                 每个工具都可以单独启用或禁用。禁用后，它会从可用工具 schema 和系统提示词中收敛掉，并在真正执行时被拒绝。
@@ -541,11 +832,22 @@
         var saveButton = document.getElementById('save-btn');
         var urlInput = document.getElementById('new-tab-url');
         var toolSectionsContainer = document.getElementById('tool-sections');
+        var llmAddProfileButton = document.getElementById('llm-add-profile');
+        var llmProfileList = document.getElementById('llm-profile-list');
+        var llmProfileEditor = document.getElementById('llm-profile-editor');
+        var llmEffectiveSummary = document.getElementById('llm-effective-summary');
+        var llmTestCard = document.getElementById('llm-test-card');
         var themeInputs = Array.prototype.slice.call(
           document.querySelectorAll('input[name="theme-mode"]')
         );
         var toolCatalog = [];
         var toolStates = {};
+        var llmSettings = { activeProfileId: null, profiles: [] };
+        var llmEffective = null;
+        var llmDraftSecrets = {};
+        var llmClearSecrets = {};
+        var llmTestResult = null;
+        var llmTestInFlight = false;
 
         function resolveTheme(mode) {
           if (
@@ -572,6 +874,12 @@
           }
         }
 
+        function clearTransientStatus() {
+          setStatus('');
+          llmTestResult = null;
+          renderLLMTestCard();
+        }
+
         function getSelectedMode() {
           var selected = themeInputs.find(function (input) {
             return input.checked;
@@ -594,6 +902,337 @@
 
         function collectToolStates() {
           return Object.assign({}, toolStates);
+        }
+
+        function normalizeEndpointMode(value) {
+          return value === 'chat_completions' || value === 'responses' ? value : 'auto';
+        }
+
+        function createDraftProfile() {
+          return {
+            id: 'draft-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+            label: 'New Provider',
+            providerType: 'openai_compatible',
+            baseUrl: '',
+            model: 'glm-4',
+            endpointMode: 'auto',
+            hasApiKey: false
+          };
+        }
+
+        function normalizeProfile(profile) {
+          var source = profile && typeof profile === 'object' ? profile : {};
+          return {
+            id: String(source.id || createDraftProfile().id),
+            label: String(source.label || source.model || 'LLM Profile'),
+            providerType: 'openai_compatible',
+            baseUrl: String(source.baseUrl || ''),
+            model: String(source.model || 'glm-4'),
+            endpointMode: normalizeEndpointMode(source.endpointMode),
+            hasApiKey: Boolean(source.hasApiKey)
+          };
+        }
+
+        function cloneLLMSettings(settings) {
+          var source = settings && typeof settings === 'object' ? settings : {};
+          var profiles = Array.isArray(source.profiles)
+            ? source.profiles.map(normalizeProfile)
+            : [];
+          var activeProfileId =
+            typeof source.activeProfileId === 'string' &&
+            profiles.some(function (profile) {
+              return profile.id === source.activeProfileId;
+            })
+              ? source.activeProfileId
+              : profiles[0]
+                ? profiles[0].id
+                : null;
+          return {
+            activeProfileId: activeProfileId,
+            profiles: profiles
+          };
+        }
+
+        function getActiveLLMProfile() {
+          if (!llmSettings.profiles.length) return null;
+          var active =
+            llmSettings.profiles.find(function (profile) {
+              return profile.id === llmSettings.activeProfileId;
+            }) || null;
+          return active || llmSettings.profiles[0];
+        }
+
+        function hasDraftApiKey(profileId) {
+          return Object.prototype.hasOwnProperty.call(llmDraftSecrets, profileId);
+        }
+
+        function syncActiveLLMForm() {
+          var profile = getActiveLLMProfile();
+          if (!profile) return;
+
+          var labelField = document.getElementById('llm-profile-label');
+          var baseUrlField = document.getElementById('llm-base-url');
+          var modelField = document.getElementById('llm-model');
+          var endpointField = document.getElementById('llm-endpoint-mode');
+          var apiKeyField = document.getElementById('llm-api-key');
+
+          if (labelField) profile.label = String(labelField.value || '').trim() || 'LLM Profile';
+          if (baseUrlField) profile.baseUrl = String(baseUrlField.value || '').trim();
+          if (modelField) profile.model = String(modelField.value || '').trim() || 'glm-4';
+          if (endpointField) profile.endpointMode = normalizeEndpointMode(endpointField.value);
+
+          if (apiKeyField) {
+            var nextSecret = String(apiKeyField.value || '');
+            if (nextSecret) {
+              llmDraftSecrets[profile.id] = nextSecret;
+              delete llmClearSecrets[profile.id];
+            } else {
+              delete llmDraftSecrets[profile.id];
+            }
+          }
+        }
+
+        function fillForm(settings) {
+          themeInputs.forEach(function (input) {
+            input.checked = input.value === settings.themeMode;
+          });
+          if (urlInput) {
+            urlInput.value = settings.newTabUrl || '';
+          }
+          cloneToolStates(settings.toolStates || {});
+          renderToolSections();
+          applyPreview(settings.themeMode || 'light');
+        }
+
+        function fillLLMSettings(view, effective) {
+          llmSettings = cloneLLMSettings(view);
+          llmEffective = effective && typeof effective === 'object' ? effective : null;
+          llmDraftSecrets = {};
+          llmClearSecrets = {};
+          llmTestResult = null;
+          renderLLMSection();
+        }
+
+        function sourceLabel(source) {
+          switch (source) {
+            case 'environment':
+              return 'Environment';
+            case 'user':
+              return 'User';
+            case 'config':
+              return 'Config';
+            case 'default':
+              return 'Default';
+            default:
+              return 'Unset';
+          }
+        }
+
+        function maskApiKeySummary() {
+          if (!llmEffective || !llmEffective.hasApiKey) {
+            return 'Not configured';
+          }
+          return 'Configured locally';
+        }
+
+        function renderEffectiveSummary() {
+          if (!llmEffectiveSummary) return;
+
+          if (!llmEffective) {
+            llmEffectiveSummary.innerHTML =
+              '<h3 class="effective-title">当前生效配置</h3>' +
+              '<div class="editor-empty">还没有读取到当前的 LLM 生效配置。</div>';
+            return;
+          }
+
+          var profileLabel = llmEffective.activeProfileLabel || 'No active profile';
+          var rows = [
+            {
+              label: 'Active profile',
+              value: profileLabel,
+              source: llmEffective.activeProfileId ? 'user' : 'unset'
+            },
+            {
+              label: 'Base URL',
+              value: llmEffective.baseUrl || 'Not configured',
+              source: llmEffective.sources.baseUrl
+            },
+            {
+              label: 'Model',
+              value: llmEffective.model || 'Not configured',
+              source: llmEffective.sources.model
+            },
+            {
+              label: 'Endpoint mode',
+              value: llmEffective.endpointMode || 'auto',
+              source: llmEffective.sources.endpointMode
+            },
+            {
+              label: 'API key',
+              value: maskApiKeySummary(),
+              source: llmEffective.sources.apiKey
+            }
+          ];
+
+          llmEffectiveSummary.innerHTML =
+            '<h3 class="effective-title">当前生效配置</h3>' +
+            '<div class="effective-grid">' +
+            rows
+              .map(function (row) {
+                return (
+                  '<div class="effective-row">' +
+                  '<div class="effective-copy">' +
+                  '<div class="effective-label">' + escapeHtml(row.label) + '</div>' +
+                  '<div class="effective-value mono">' + escapeHtml(row.value) + '</div>' +
+                  '</div>' +
+                  '<span class="source-pill">' + escapeHtml(sourceLabel(row.source)) + '</span>' +
+                  '</div>'
+                );
+              })
+              .join('') +
+            '</div>';
+        }
+
+        function renderLLMTestCard() {
+          if (!llmTestCard) return;
+
+          if (llmTestInFlight) {
+            llmTestCard.setAttribute('data-tone', 'success');
+            llmTestCard.innerHTML =
+              '<h3 class="test-title">连接测试</h3>' +
+              '<div class="test-row">正在测试当前 provider，请稍候...</div>';
+            return;
+          }
+
+          if (!llmTestResult) {
+            llmTestCard.removeAttribute('data-tone');
+            llmTestCard.innerHTML =
+              '<h3 class="test-title">连接测试</h3>' +
+              '<div class="test-row">你可以先编辑当前 profile，再点击“测试连接”验证 Base URL、模型和密钥是否可用。</div>';
+            return;
+          }
+
+          var tone = llmTestResult.ok ? 'success' : 'error';
+          llmTestCard.setAttribute('data-tone', tone);
+          llmTestCard.innerHTML =
+            '<h3 class="test-title">连接测试</h3>' +
+            '<div class="test-row">' +
+            escapeHtml(llmTestResult.ok ? '连接成功，Provider 已返回响应。' : llmTestResult.error || '连接失败。') +
+            '</div>' +
+            '<div class="test-meta">' +
+            '<div class="test-row"><strong>Model:</strong> <span class="mono">' + escapeHtml(llmTestResult.model || '') + '</span></div>' +
+            '<div class="test-row"><strong>Endpoint:</strong> <span class="mono">' + escapeHtml(llmTestResult.requestUrl || '') + '</span></div>' +
+            '<div class="test-row"><strong>Mode:</strong> <span class="mono">' + escapeHtml(llmTestResult.endpointMode || '') + '</span></div>' +
+            '<div class="test-row"><strong>Latency:</strong> ' + escapeHtml(String(llmTestResult.latencyMs || 0)) + ' ms</div>' +
+            (llmTestResult.preview
+              ? '<div class="test-row"><strong>Preview:</strong> ' + escapeHtml(llmTestResult.preview) + '</div>'
+              : '') +
+            '</div>';
+        }
+
+        function renderLLMProfileList() {
+          if (!llmProfileList) return;
+
+          if (!llmSettings.profiles.length) {
+            llmProfileList.innerHTML =
+              '<div class="profile-empty">还没有任何 provider profile。点击右上角“新增 Provider”创建第一组 LLM 配置。</div>';
+            return;
+          }
+
+          llmProfileList.innerHTML = llmSettings.profiles
+            .map(function (profile) {
+              var isActive = profile.id === llmSettings.activeProfileId;
+              return (
+                '<div class="profile-card" data-active="' + (isActive ? 'true' : 'false') + '">' +
+                '<div class="profile-card-head">' +
+                '<button class="profile-select-btn" type="button" data-llm-action="activate" data-profile-id="' + escapeHtml(profile.id) + '">' +
+                '<span class="profile-title">' + escapeHtml(profile.label || 'LLM Profile') + '</span>' +
+                '<span class="profile-meta mono">' + escapeHtml(profile.model || 'glm-4') + '</span>' +
+                '<span class="profile-meta mono">' + escapeHtml(profile.baseUrl || 'No base URL configured') + '</span>' +
+                '</button>' +
+                '<button class="danger-btn" type="button" data-llm-action="remove" data-profile-id="' + escapeHtml(profile.id) + '">移除</button>' +
+                '</div>' +
+                '<div class="profile-badges">' +
+                (isActive ? '<span class="source-pill">Active</span>' : '') +
+                '<span class="mini-pill">' + escapeHtml(profile.endpointMode || 'auto') + '</span>' +
+                (profile.hasApiKey ? '<span class="mini-pill">Saved key</span>' : '<span class="mini-pill">No key</span>') +
+                '</div>' +
+                '</div>'
+              );
+            })
+            .join('');
+        }
+
+        function renderLLMEditor() {
+          if (!llmProfileEditor) return;
+
+          var profile = getActiveLLMProfile();
+          if (!profile) {
+            llmProfileEditor.innerHTML =
+              '<div class="editor-empty">新建一个 provider 后，就可以在这里编辑 Base URL、模型名、endpoint mode 和 API key。</div>';
+            return;
+          }
+
+          var typedSecret = hasDraftApiKey(profile.id) ? llmDraftSecrets[profile.id] : '';
+          var secretNote = '未输入新密钥时，保存会保留当前已存储的 API key。';
+          if (llmClearSecrets[profile.id]) {
+            secretNote = '当前已标记：保存时会清除这个 profile 的本地 API key。';
+          } else if (typedSecret) {
+            secretNote = '当前输入的新 API key 会在保存时写入本地私有存储。';
+          } else if (!profile.hasApiKey) {
+            secretNote = '当前 profile 还没有可用的 API key。你可以先输入一个，再测试连接或保存。';
+          }
+
+          llmProfileEditor.innerHTML =
+            '<div class="llm-editor-grid">' +
+            '<div class="provider-lockup">' +
+            '<span class="source-pill">OpenAI Compatible</span>' +
+            '<span class="provider-text">当前 API 层统一按 OpenAI-compatible provider 处理。</span>' +
+            '</div>' +
+            '<div class="field-grid">' +
+            '<label class="field-stack">' +
+            '<span class="field-label">Profile 名称</span>' +
+            '<input class="field" id="llm-profile-label" type="text" autocomplete="off" value="' + escapeHtml(profile.label || '') + '" />' +
+            '</label>' +
+            '<label class="field-stack">' +
+            '<span class="field-label">模型名</span>' +
+            '<input class="field mono" id="llm-model" type="text" autocomplete="off" value="' + escapeHtml(profile.model || '') + '" placeholder="glm-4" />' +
+            '</label>' +
+            '<label class="field-stack" data-span="full">' +
+            '<span class="field-label">Base URL</span>' +
+            '<input class="field mono" id="llm-base-url" type="text" autocomplete="off" spellcheck="false" value="' + escapeHtml(profile.baseUrl || '') + '" placeholder="https://provider.example/v1" />' +
+            '<span class="hint">可以填写基础 URL，也可以直接填写完整的 `/chat/completions` 或 `/responses` 端点。</span>' +
+            '</label>' +
+            '<label class="field-stack">' +
+            '<span class="field-label">Endpoint Mode</span>' +
+            '<select class="field mono" id="llm-endpoint-mode">' +
+            '<option value="auto"' + (profile.endpointMode === 'auto' ? ' selected' : '') + '>auto</option>' +
+            '<option value="chat_completions"' + (profile.endpointMode === 'chat_completions' ? ' selected' : '') + '>chat_completions</option>' +
+            '<option value="responses"' + (profile.endpointMode === 'responses' ? ' selected' : '') + '>responses</option>' +
+            '</select>' +
+            '</label>' +
+            '<label class="field-stack">' +
+            '<span class="field-label">API Key</span>' +
+            '<input class="field mono" id="llm-api-key" type="password" autocomplete="off" spellcheck="false" placeholder="' +
+            escapeHtml(profile.hasApiKey ? 'Leave blank to keep current secret' : 'Paste a new API key') +
+            '" value="' + escapeHtml(typedSecret) + '" />' +
+            '</label>' +
+            '</div>' +
+            '<div class="secret-note">' + escapeHtml(secretNote) + '</div>' +
+            '<div class="inline-actions">' +
+            '<button class="ghost-btn" id="llm-test-btn" type="button"' + (llmTestInFlight ? ' disabled' : '') + '>' + (llmTestInFlight ? '测试中...' : '测试连接') + '</button>' +
+            '<button class="ghost-btn" id="llm-clear-key-btn" type="button"' +
+            (!profile.hasApiKey && !typedSecret && !llmClearSecrets[profile.id] ? ' disabled' : '') +
+            '>清除已保存密钥</button>' +
+            '</div>' +
+            '</div>';
+        }
+
+        function renderLLMSection() {
+          renderLLMProfileList();
+          renderLLMEditor();
+          renderEffectiveSummary();
+          renderLLMTestCard();
         }
 
         function renderToolSections() {
@@ -648,29 +1287,35 @@
           toolSectionsContainer.innerHTML = html;
         }
 
-        function fillForm(settings) {
-          themeInputs.forEach(function (input) {
-            input.checked = input.value === settings.themeMode;
-          });
-          if (urlInput) {
-            urlInput.value = settings.newTabUrl || '';
-          }
-          cloneToolStates(settings.toolStates || {});
-          renderToolSections();
-          applyPreview(settings.themeMode || 'light');
+        async function refreshEffectiveLLMSettings() {
+          if (!window.api || !window.api.getEffectiveLLMSettings) return;
+          llmEffective = await window.api.getEffectiveLLMSettings();
+          renderEffectiveSummary();
         }
 
         async function loadSettings() {
-          if (!window.api || !window.api.getSettings || !window.api.getToolCatalog) {
+          if (
+            !window.api ||
+            !window.api.getSettings ||
+            !window.api.getToolCatalog ||
+            !window.api.getLLMSettings ||
+            !window.api.getEffectiveLLMSettings
+          ) {
             setStatus('无法读取设置：预加载 API 不可用。', 'error');
             return;
           }
 
           try {
-            var result = await Promise.all([window.api.getSettings(), window.api.getToolCatalog()]);
+            var result = await Promise.all([
+              window.api.getSettings(),
+              window.api.getToolCatalog(),
+              window.api.getLLMSettings(),
+              window.api.getEffectiveLLMSettings()
+            ]);
             var settings = result[0];
             toolCatalog = result[1] || [];
             fillForm(settings);
+            fillLLMSettings(result[2], result[3]);
           } catch (error) {
             setStatus('读取设置失败，请稍后重试。', 'error');
           }
@@ -724,26 +1369,189 @@
           });
         }
 
+        if (llmAddProfileButton) {
+          llmAddProfileButton.addEventListener('click', function () {
+            syncActiveLLMForm();
+            var next = createDraftProfile();
+            llmSettings.profiles.push(next);
+            llmSettings.activeProfileId = next.id;
+            clearTransientStatus();
+            renderLLMSection();
+          });
+        }
+
+        if (llmProfileList) {
+          llmProfileList.addEventListener('click', function (event) {
+            var actionTarget = event.target && event.target.closest('[data-llm-action]');
+            if (!actionTarget) return;
+            syncActiveLLMForm();
+            var action = actionTarget.getAttribute('data-llm-action');
+            var profileId = actionTarget.getAttribute('data-profile-id');
+            if (!action || !profileId) return;
+
+            if (action === 'activate') {
+              llmSettings.activeProfileId = profileId;
+              clearTransientStatus();
+              renderLLMSection();
+              return;
+            }
+
+            if (action === 'remove') {
+              llmSettings.profiles = llmSettings.profiles.filter(function (profile) {
+                return profile.id !== profileId;
+              });
+              delete llmDraftSecrets[profileId];
+              delete llmClearSecrets[profileId];
+              if (llmSettings.activeProfileId === profileId) {
+                llmSettings.activeProfileId = llmSettings.profiles[0]
+                  ? llmSettings.profiles[0].id
+                  : null;
+              }
+              clearTransientStatus();
+              renderLLMSection();
+            }
+          });
+        }
+
+        if (llmProfileEditor) {
+          llmProfileEditor.addEventListener('input', function (event) {
+            var target = event.target;
+            if (!target) return;
+            if (target.id === 'llm-api-key') {
+              var profile = getActiveLLMProfile();
+              if (!profile) return;
+              var secret = String(target.value || '');
+              if (secret) {
+                llmDraftSecrets[profile.id] = secret;
+                delete llmClearSecrets[profile.id];
+              } else {
+                delete llmDraftSecrets[profile.id];
+              }
+            }
+            setStatus('');
+            llmTestResult = null;
+          });
+
+          llmProfileEditor.addEventListener('change', function () {
+            syncActiveLLMForm();
+            setStatus('');
+            llmTestResult = null;
+            renderEffectiveSummary();
+            renderLLMTestCard();
+          });
+
+          llmProfileEditor.addEventListener('click', async function (event) {
+            var target = event.target;
+            if (!target || target.tagName !== 'BUTTON') return;
+            var profile = getActiveLLMProfile();
+            if (!profile) return;
+
+            if (target.id === 'llm-clear-key-btn') {
+              delete llmDraftSecrets[profile.id];
+              llmClearSecrets[profile.id] = true;
+              clearTransientStatus();
+              renderLLMSection();
+              return;
+            }
+
+            if (target.id === 'llm-test-btn') {
+              if (!window.api || !window.api.testLLMSettings) {
+                setStatus('无法测试连接：预加载 API 不可用。', 'error');
+                return;
+              }
+
+              syncActiveLLMForm();
+              llmTestInFlight = true;
+              renderLLMTestCard();
+
+              try {
+                var payload = {
+                  profileId: profile.id,
+                  baseUrl: profile.baseUrl,
+                  model: profile.model,
+                  endpointMode: profile.endpointMode
+                };
+
+                if (hasDraftApiKey(profile.id)) {
+                  payload.apiKey = llmDraftSecrets[profile.id];
+                } else if (llmClearSecrets[profile.id] || !profile.hasApiKey) {
+                  payload.apiKey = '';
+                }
+
+                llmTestResult = await window.api.testLLMSettings(payload);
+              } catch (error) {
+                llmTestResult = {
+                  ok: false,
+                  statusCode: null,
+                  latencyMs: 0,
+                  endpointMode: 'chat_completions',
+                  requestUrl: '',
+                  model: profile.model || 'unknown',
+                  preview: '',
+                  error: error && error.message ? error.message : '连接测试失败。'
+                };
+              } finally {
+                llmTestInFlight = false;
+                renderLLMTestCard();
+              }
+            }
+          });
+        }
+
         form.addEventListener('submit', async function (event) {
           event.preventDefault();
-          if (!window.api || !window.api.updateSettings) {
+          if (
+            !window.api ||
+            !window.api.updateSettings ||
+            !window.api.updateLLMSettings ||
+            !window.api.getEffectiveLLMSettings
+          ) {
             setStatus('无法保存设置：预加载 API 不可用。', 'error');
             return;
           }
 
+          syncActiveLLMForm();
           saveButton.disabled = true;
           setStatus('正在保存...');
 
           try {
-            var next = await window.api.updateSettings({
-              themeMode: getSelectedMode(),
-              newTabUrl: urlInput ? urlInput.value : '',
-              toolStates: collectToolStates()
-            });
-            fillForm(next);
+            var llmPayload = {
+              activeProfileId: llmSettings.activeProfileId,
+              profiles: llmSettings.profiles.map(function (profile) {
+                var nextProfile = {
+                  id: profile.id,
+                  label: profile.label,
+                  providerType: 'openai_compatible',
+                  baseUrl: profile.baseUrl,
+                  model: profile.model,
+                  endpointMode: profile.endpointMode
+                };
+
+                if (hasDraftApiKey(profile.id)) {
+                  nextProfile.apiKey = llmDraftSecrets[profile.id];
+                } else if (llmClearSecrets[profile.id]) {
+                  nextProfile.apiKey = '';
+                }
+
+                return nextProfile;
+              })
+            };
+
+            var result = await Promise.all([
+              window.api.updateSettings({
+                themeMode: getSelectedMode(),
+                newTabUrl: urlInput ? urlInput.value : '',
+                toolStates: collectToolStates()
+              }),
+              window.api.updateLLMSettings(llmPayload),
+              window.api.getEffectiveLLMSettings()
+            ]);
+
+            fillForm(result[0]);
+            fillLLMSettings(result[1], result[2]);
             setStatus('设置已保存。', 'success');
           } catch (error) {
-            var message = error && error.message ? error.message : '保存失败，请检查地址格式。';
+            var message = error && error.message ? error.message : '保存失败，请检查输入内容。';
             setStatus(message, 'error');
           } finally {
             saveButton.disabled = false;
