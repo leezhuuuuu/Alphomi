@@ -848,6 +848,7 @@
         var llmClearSecrets = {};
         var llmTestResult = null;
         var llmTestInFlight = false;
+        var llmDirty = false;
 
         function resolveTheme(mode) {
           if (
@@ -916,7 +917,9 @@
             baseUrl: '',
             model: 'glm-4',
             endpointMode: 'auto',
-            hasApiKey: false
+            hasApiKey: false,
+            isDerived: false,
+            originSource: 'user'
           };
         }
 
@@ -929,15 +932,63 @@
             baseUrl: String(source.baseUrl || ''),
             model: String(source.model || 'glm-4'),
             endpointMode: normalizeEndpointMode(source.endpointMode),
-            hasApiKey: Boolean(source.hasApiKey)
+            hasApiKey: Boolean(source.hasApiKey),
+            isDerived: Boolean(source.isDerived),
+            originSource: String(source.originSource || 'user')
           };
         }
 
-        function cloneLLMSettings(settings) {
+        function deriveEffectiveProfileSource(effective) {
+          if (!effective || typeof effective !== 'object') return 'unset';
+          if (effective.activeProfileId) return 'user';
+          if (effective.sources) {
+            if (effective.sources.baseUrl && effective.sources.baseUrl !== 'unset') return effective.sources.baseUrl;
+            if (effective.sources.model && effective.sources.model !== 'unset') return effective.sources.model;
+            if (effective.sources.endpointMode && effective.sources.endpointMode !== 'unset') return effective.sources.endpointMode;
+            if (effective.sources.apiKey && effective.sources.apiKey !== 'unset') return effective.sources.apiKey;
+          }
+          return 'unset';
+        }
+
+        function createDerivedProfileFromEffective(effective) {
+          if (!effective || typeof effective !== 'object') return null;
+
+          var originSource = deriveEffectiveProfileSource(effective);
+          if (originSource === 'unset') return null;
+
+          var label = 'Runtime Default';
+          if (originSource === 'config') {
+            label = 'Config Default';
+          } else if (originSource === 'environment') {
+            label = 'Environment Override';
+          } else if (originSource === 'default') {
+            label = 'Built-in Default';
+          }
+
+          return normalizeProfile({
+            id: '__derived_runtime_profile__',
+            label: effective.activeProfileLabel || label,
+            providerType: 'openai_compatible',
+            baseUrl: effective.baseUrl || '',
+            model: effective.model || 'glm-4',
+            endpointMode: effective.endpointMode || 'auto',
+            hasApiKey: Boolean(effective.hasApiKey),
+            isDerived: true,
+            originSource: originSource
+          });
+        }
+
+        function cloneLLMSettings(settings, effective) {
           var source = settings && typeof settings === 'object' ? settings : {};
           var profiles = Array.isArray(source.profiles)
             ? source.profiles.map(normalizeProfile)
             : [];
+          if (!profiles.length) {
+            var derivedProfile = createDerivedProfileFromEffective(effective);
+            if (derivedProfile) {
+              profiles = [derivedProfile];
+            }
+          }
           var activeProfileId =
             typeof source.activeProfileId === 'string' &&
             profiles.some(function (profile) {
@@ -1004,12 +1055,78 @@
           applyPreview(settings.themeMode || 'light');
         }
 
+        function buildPersistableLLMPayload() {
+          if (!llmDirty) return null;
+
+          var nonDerivedProfiles = llmSettings.profiles.filter(function (profile) {
+            return !profile.isDerived;
+          });
+          var persistProfiles = nonDerivedProfiles;
+
+          if (!persistProfiles.length) {
+            var activeProfile = getActiveLLMProfile();
+            if (activeProfile) {
+              persistProfiles = [activeProfile];
+            }
+          }
+
+          if (!persistProfiles.length) return null;
+
+          var idMap = {};
+          persistProfiles = persistProfiles.map(function (profile) {
+            var nextId = profile.id;
+            if (profile.isDerived) {
+              nextId =
+                'profile-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+            }
+            idMap[profile.id] = nextId;
+            return Object.assign({}, profile, {
+              id: nextId,
+              isDerived: false,
+              originSource: 'user'
+            });
+          });
+
+          var allowedIds = {};
+          persistProfiles.forEach(function (profile) {
+            allowedIds[profile.id] = true;
+          });
+
+          var nextActiveProfileId =
+            llmSettings.activeProfileId && allowedIds[idMap[llmSettings.activeProfileId] || llmSettings.activeProfileId]
+              ? idMap[llmSettings.activeProfileId] || llmSettings.activeProfileId
+              : persistProfiles[0].id;
+
+          return {
+            activeProfileId: nextActiveProfileId,
+            profiles: persistProfiles.map(function (profile) {
+              var nextProfile = {
+                id: profile.id,
+                label: profile.label,
+                providerType: 'openai_compatible',
+                baseUrl: profile.baseUrl,
+                model: profile.model,
+                endpointMode: profile.endpointMode
+              };
+
+              if (hasDraftApiKey(profile.id)) {
+                nextProfile.apiKey = llmDraftSecrets[profile.id];
+              } else if (llmClearSecrets[profile.id]) {
+                nextProfile.apiKey = '';
+              }
+
+              return nextProfile;
+            })
+          };
+        }
+
         function fillLLMSettings(view, effective) {
-          llmSettings = cloneLLMSettings(view);
+          llmSettings = cloneLLMSettings(view, effective);
           llmEffective = effective && typeof effective === 'object' ? effective : null;
           llmDraftSecrets = {};
           llmClearSecrets = {};
           llmTestResult = null;
+          llmDirty = false;
           renderLLMSection();
         }
 
@@ -1045,12 +1162,21 @@
             return;
           }
 
-          var profileLabel = llmEffective.activeProfileLabel || 'No active profile';
+          var profileSource = deriveEffectiveProfileSource(llmEffective);
+          var profileLabel = llmEffective.activeProfileLabel || (
+            profileSource === 'config'
+              ? 'Config Default'
+              : profileSource === 'environment'
+                ? 'Environment Override'
+                : profileSource === 'default'
+                  ? 'Built-in Default'
+                  : 'No active profile'
+          );
           var rows = [
             {
               label: 'Active profile',
               value: profileLabel,
-              source: llmEffective.activeProfileId ? 'user' : 'unset'
+              source: profileSource
             },
             {
               label: 'Base URL',
@@ -1142,6 +1268,14 @@
           llmProfileList.innerHTML = llmSettings.profiles
             .map(function (profile) {
               var isActive = profile.id === llmSettings.activeProfileId;
+              var sourceBadge = profile.isDerived
+                ? '<span class="source-pill">' + escapeHtml(sourceLabel(profile.originSource)) + '</span>'
+                : isActive
+                  ? '<span class="source-pill">Active</span>'
+                  : '';
+              var removeButton = profile.isDerived
+                ? ''
+                : '<button class="danger-btn" type="button" data-llm-action="remove" data-profile-id="' + escapeHtml(profile.id) + '">移除</button>';
               return (
                 '<div class="profile-card" data-active="' + (isActive ? 'true' : 'false') + '">' +
                 '<div class="profile-card-head">' +
@@ -1150,10 +1284,10 @@
                 '<span class="profile-meta mono">' + escapeHtml(profile.model || 'glm-4') + '</span>' +
                 '<span class="profile-meta mono">' + escapeHtml(profile.baseUrl || 'No base URL configured') + '</span>' +
                 '</button>' +
-                '<button class="danger-btn" type="button" data-llm-action="remove" data-profile-id="' + escapeHtml(profile.id) + '">移除</button>' +
+                removeButton +
                 '</div>' +
                 '<div class="profile-badges">' +
-                (isActive ? '<span class="source-pill">Active</span>' : '') +
+                sourceBadge +
                 '<span class="mini-pill">' + escapeHtml(profile.endpointMode || 'auto') + '</span>' +
                 (profile.hasApiKey ? '<span class="mini-pill">Saved key</span>' : '<span class="mini-pill">No key</span>') +
                 '</div>' +
@@ -1175,6 +1309,14 @@
 
           var typedSecret = hasDraftApiKey(profile.id) ? llmDraftSecrets[profile.id] : '';
           var secretNote = '未输入新密钥时，保存会保留当前已存储的 API key。';
+          if (profile.isDerived && profile.originSource === 'config') {
+            secretNote = '当前显示的是从 config.yaml 推导出来的运行时配置。保存后，这份配置会变成用户级 override。';
+          } else if (profile.isDerived && profile.originSource === 'environment') {
+            secretNote = '当前显示的是环境变量覆盖后的运行时配置。即使保存用户设置，环境变量仍然会优先生效。';
+          } else if (profile.isDerived && profile.originSource === 'default') {
+            secretNote = '当前显示的是内置默认值。保存后，会创建第一份用户级 provider 设置。';
+          }
+
           if (llmClearSecrets[profile.id]) {
             secretNote = '当前已标记：保存时会清除这个 profile 的本地 API key。';
           } else if (typedSecret) {
@@ -1187,7 +1329,13 @@
             '<div class="llm-editor-grid">' +
             '<div class="provider-lockup">' +
             '<span class="source-pill">OpenAI Compatible</span>' +
-            '<span class="provider-text">当前 API 层统一按 OpenAI-compatible provider 处理。</span>' +
+            '<span class="provider-text">' +
+            escapeHtml(
+              profile.isDerived
+                ? '当前显示的是运行时推导出来的 provider 视图。你可以继续编辑，并在保存时把它变成用户级配置。'
+                : '当前 API 层统一按 OpenAI-compatible provider 处理。'
+            ) +
+            '</span>' +
             '</div>' +
             '<div class="field-grid">' +
             '<label class="field-stack">' +
@@ -1373,8 +1521,17 @@
           llmAddProfileButton.addEventListener('click', function () {
             syncActiveLLMForm();
             var next = createDraftProfile();
-            llmSettings.profiles.push(next);
+            if (
+              llmSettings.profiles.length === 1 &&
+              llmSettings.profiles[0] &&
+              llmSettings.profiles[0].isDerived
+            ) {
+              llmSettings.profiles = [next];
+            } else {
+              llmSettings.profiles.push(next);
+            }
             llmSettings.activeProfileId = next.id;
+            llmDirty = true;
             clearTransientStatus();
             renderLLMSection();
           });
@@ -1391,6 +1548,7 @@
 
             if (action === 'activate') {
               llmSettings.activeProfileId = profileId;
+              llmDirty = true;
               clearTransientStatus();
               renderLLMSection();
               return;
@@ -1407,6 +1565,7 @@
                   ? llmSettings.profiles[0].id
                   : null;
               }
+              llmDirty = true;
               clearTransientStatus();
               renderLLMSection();
             }
@@ -1428,12 +1587,14 @@
                 delete llmDraftSecrets[profile.id];
               }
             }
+            llmDirty = true;
             setStatus('');
             llmTestResult = null;
           });
 
           llmProfileEditor.addEventListener('change', function () {
             syncActiveLLMForm();
+            llmDirty = true;
             setStatus('');
             llmTestResult = null;
             renderEffectiveSummary();
@@ -1449,6 +1610,7 @@
             if (target.id === 'llm-clear-key-btn') {
               delete llmDraftSecrets[profile.id];
               llmClearSecrets[profile.id] = true;
+              llmDirty = true;
               clearTransientStatus();
               renderLLMSection();
               return;
@@ -1503,6 +1665,7 @@
           if (
             !window.api ||
             !window.api.updateSettings ||
+            !window.api.getLLMSettings ||
             !window.api.updateLLMSettings ||
             !window.api.getEffectiveLLMSettings
           ) {
@@ -1515,27 +1678,7 @@
           setStatus('正在保存...');
 
           try {
-            var llmPayload = {
-              activeProfileId: llmSettings.activeProfileId,
-              profiles: llmSettings.profiles.map(function (profile) {
-                var nextProfile = {
-                  id: profile.id,
-                  label: profile.label,
-                  providerType: 'openai_compatible',
-                  baseUrl: profile.baseUrl,
-                  model: profile.model,
-                  endpointMode: profile.endpointMode
-                };
-
-                if (hasDraftApiKey(profile.id)) {
-                  nextProfile.apiKey = llmDraftSecrets[profile.id];
-                } else if (llmClearSecrets[profile.id]) {
-                  nextProfile.apiKey = '';
-                }
-
-                return nextProfile;
-              })
-            };
+            var llmPayload = buildPersistableLLMPayload();
 
             var result = await Promise.all([
               window.api.updateSettings({
@@ -1543,7 +1686,7 @@
                 newTabUrl: urlInput ? urlInput.value : '',
                 toolStates: collectToolStates()
               }),
-              window.api.updateLLMSettings(llmPayload),
+              llmPayload ? window.api.updateLLMSettings(llmPayload) : window.api.getLLMSettings(),
               window.api.getEffectiveLLMSettings()
             ]);
 

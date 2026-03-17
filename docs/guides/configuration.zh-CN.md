@@ -122,6 +122,8 @@ Brain 期望连接一个兼容 OpenAI 的接口。`LLM_BASE_URL` 可以是以下
 运行时行为：
 
 - Desktop 通过 IPC 和本地 control service 暴露 LLM 设置 API
+- 当实际生效的 provider 来自 `config.yaml` 或环境变量覆盖时，设置页会直接展示这份运行时推导出来的 profile，而不是让编辑区保持空白
+- 单纯保存外观或其他设置时，不会把这份派生 profile 反向写成用户设置；只有用户真正编辑并保存了 LLM 字段，它才会物化成用户级 override
 - Brain 会在每次请求前解析当前有效的 LLM 配置，因此新的对话回合无需重启即可拿到最新 provider 设置
 - 如果 Desktop 当前不可用，Brain 会自动回退到环境变量和 `config.yaml`
 

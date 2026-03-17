@@ -122,6 +122,8 @@ Persistence model:
 Runtime behavior:
 
 - the Desktop exposes local LLM settings APIs over IPC and the local control service
+- when the effective provider comes from `config.yaml` or environment overrides, the Settings page shows that runtime-derived profile directly instead of leaving the editor blank
+- saving unrelated settings does not persist that derived profile; it only becomes a user override after the user edits and saves the LLM fields
 - the Brain resolves the effective LLM configuration at request time, so new turns pick up provider changes without requiring an app restart
 - if the Desktop is unavailable, the Brain falls back to environment variables and `config.yaml`
 
