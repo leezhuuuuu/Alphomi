@@ -22,6 +22,81 @@ export interface NavigationState {
 
 export type LLMEndpointMode = 'auto' | 'chat_completions' | 'responses'
 
+export type TeachingTimelineItemKind = 'action' | 'note' | 'system'
+export type TeachingArtifactKind = 'snapshot_delta'
+export type TeachingActionType =
+  | 'click'
+  | 'input'
+  | 'change'
+  | 'submit'
+  | 'navigate'
+  | 'navigate_in_page'
+  | 'load'
+  | 'tab_select'
+  | 'tab_switch_ignored'
+
+export type TeachingTimelineItemRecord = {
+  id: string
+  kind: TeachingTimelineItemKind
+  createdAt: string
+  tabId: number | null
+  url?: string
+  title?: string
+  actionType?: TeachingActionType
+  summary: string
+  detail?: Record<string, unknown>
+  artifactId?: string | null
+}
+
+export type TeachingArtifactRecord = {
+  id: string
+  sessionId: string
+  itemId: string
+  kind: TeachingArtifactKind
+  path: string
+  summary: string
+  createdAt: string
+  sizeBytes: number
+}
+
+export type TeachingSessionRecord = {
+  id: string
+  status: 'idle' | 'recording' | 'processing' | 'review' | 'stopped' | 'interrupted' | 'saved'
+  lockedTabId: number
+  lockedTabTitle?: string
+  lockedTabUrl?: string
+  createdAt: string
+  updatedAt: string
+  startedAt: string
+  stoppedAt?: string | null
+  notes: string[]
+  timeline: TeachingTimelineItemRecord[]
+  artifacts: TeachingArtifactRecord[]
+}
+
+export type TeachingStateSnapshot = {
+  activeSessionId: string | null
+  activeSession: TeachingSessionRecord | null
+  sessions: TeachingSessionRecord[]
+  runtime: {
+    attachedWebContentsId: number | null
+    pendingSnapshotItemId: string | null
+    pendingSnapshotReason: string | null
+    lockedTabActive: boolean
+  }
+}
+
+export type TeachingEventPayload = {
+  type: string
+  sessionId?: string | null
+  createdAt?: string
+  item?: TeachingTimelineItemRecord
+  artifact?: TeachingArtifactRecord
+  message?: string
+  error?: string
+  [key: string]: unknown
+}
+
 // 扩展 Window 接口
 declare global {
   interface ImportMetaEnv {
@@ -153,6 +228,13 @@ declare global {
       stop: () => void
       // 获取 Brain WebSocket URL
       getBrainUrl: () => Promise<string>
+      teachingStart: () => Promise<TeachingStateSnapshot>
+      teachingStop: () => Promise<TeachingStateSnapshot>
+      teachingAddNote: (payload: string | { text: string }) => Promise<TeachingStateSnapshot>
+      teachingGetState: () => Promise<TeachingStateSnapshot>
+      onTeachingEvent: (listener: (payload: TeachingEventPayload) => void) => () => void
+      onTeachingState: (listener: (payload: TeachingStateSnapshot) => void) => () => void
+      onTeachingError: (listener: (payload: { message: string; error?: string }) => void) => () => void
       getDownloads: () => Promise<{
         id: string
         url: string

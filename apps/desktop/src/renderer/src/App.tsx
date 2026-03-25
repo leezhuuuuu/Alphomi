@@ -59,6 +59,7 @@ function App(): JSX.Element {
 
   const [tabs, setTabs] = useState<Tab[]>([]);
   const [navState, setNavState] = useState<NavigationState>(DEFAULT_NAV_STATE);
+  const activeTab = tabs.find((tab) => tab.active) || null;
   const applyTheme = (color: string) => {
     document.documentElement.style.setProperty("--theme-accent", color);
     window.localStorage.setItem("ui-theme-accent", color);
@@ -395,6 +396,15 @@ function App(): JSX.Element {
                     sessionId={sessionId}
                     collapsed={!isAssistantOpen}
                     onMinWidthChange={setAssistantMinWidth}
+                    activeTab={
+                      activeTab
+                        ? {
+                            tabId: activeTab.id,
+                            title: navState.title || activeTab.title,
+                            url: navState.url || activeTab.url,
+                          }
+                        : null
+                    }
                   />
                 </div>
               </div>

@@ -30,6 +30,7 @@ import {
   testLLMConnection,
   updateLLMSettings
 } from './llm-settings'
+import { initializeTeachingCapture } from './teaching-capture'
 
 // 开启 CDP，使用高位端口避免冲突
 const CDP_PORT = 19222
@@ -105,6 +106,7 @@ let eventSaveTimer: NodeJS.Timeout | null = null
 let lastUserDataSaveAt = 0
 let saveInFlight: Promise<void> | null = null
 let isQuitting = false
+let teachingCaptureController: ReturnType<typeof initializeTeachingCapture> | null = null
 
 const MENU_WIDTH = 240
 const MENU_HEIGHT = 420
@@ -258,6 +260,13 @@ function resolveUserDataConfig(): UserDataConfig {
     userDataConfig = loadUserDataConfig()
   }
   return userDataConfig
+}
+
+function broadcastToAllWindows(channel: string, payload: unknown) {
+  BrowserWindow.getAllWindows().forEach((win) => {
+    if (!win || win.isDestroyed()) return
+    win.webContents.send(channel, payload)
+  })
 }
 
 async function restoreUserData(sessionId: string) {
@@ -908,6 +917,11 @@ app.whenReady().then(async () => {
   })
 
   createWindow()
+  teachingCaptureController = initializeTeachingCapture({
+    getDriverBaseUrl: () => driverBaseUrl,
+    getDriverSessionId: () => activeSessionId,
+    sendToRenderer: broadcastToAllWindows,
+  })
   createApplicationMenu()
   controlServer = startControlServer()
   registerInitialPorts()
@@ -1082,6 +1096,10 @@ app.on('before-quit', (event) => {
 })
 
 app.on('will-quit', () => {
+  if (teachingCaptureController) {
+    teachingCaptureController.dispose()
+    teachingCaptureController = null
+  }
   if (controlServer) {
     controlServer.close()
     controlServer = null
@@ -1272,9 +1290,11 @@ async function waitForDriverAndConnect() {
         setSessionId(sessionId)
 
         // 广播给所有窗口
-        BrowserWindow.getAllWindows().forEach(win => {
-          win.webContents.send('session-ready', sessionId)
-        })
+        broadcastToAllWindows('session-ready', sessionId)
+
+        if (teachingCaptureController) {
+          teachingCaptureController.onDriverSessionReady()
+        }
 
         await restoreUserData(sessionId)
         startAutoSave(sessionId)

@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
 // 定义 Tab 类型
@@ -9,6 +9,81 @@ interface Tab {
 }
 
 type LLMEndpointMode = 'auto' | 'chat_completions' | 'responses'
+
+type TeachingTimelineItemKind = 'action' | 'note' | 'system'
+type TeachingArtifactKind = 'snapshot_delta'
+type TeachingActionType =
+  | 'click'
+  | 'input'
+  | 'change'
+  | 'submit'
+  | 'navigate'
+  | 'navigate_in_page'
+  | 'load'
+  | 'tab_select'
+  | 'tab_switch_ignored'
+
+type TeachingTimelineItem = {
+  id: string
+  kind: TeachingTimelineItemKind
+  createdAt: string
+  tabId: number | null
+  url?: string
+  title?: string
+  actionType?: TeachingActionType
+  summary: string
+  detail?: Record<string, unknown>
+  artifactId?: string | null
+}
+
+type TeachingArtifact = {
+  id: string
+  sessionId: string
+  itemId: string
+  kind: TeachingArtifactKind
+  path: string
+  summary: string
+  createdAt: string
+  sizeBytes: number
+}
+
+type TeachingSessionRecord = {
+  id: string
+  status: 'idle' | 'recording' | 'processing' | 'review' | 'stopped' | 'interrupted' | 'saved'
+  lockedTabId: number
+  lockedTabTitle?: string
+  lockedTabUrl?: string
+  createdAt: string
+  updatedAt: string
+  startedAt: string
+  stoppedAt?: string | null
+  notes: string[]
+  timeline: TeachingTimelineItem[]
+  artifacts: TeachingArtifact[]
+}
+
+type TeachingStateSnapshot = {
+  activeSessionId: string | null
+  activeSession: TeachingSessionRecord | null
+  sessions: TeachingSessionRecord[]
+  runtime: {
+    attachedWebContentsId: number | null
+    pendingSnapshotItemId: string | null
+    pendingSnapshotReason: string | null
+    lockedTabActive: boolean
+  }
+}
+
+type TeachingEventPayload = {
+  type: string
+  sessionId?: string | null
+  createdAt?: string
+  item?: TeachingTimelineItem
+  artifact?: TeachingArtifact
+  message?: string
+  error?: string
+  [key: string]: unknown
+}
 
 // Custom APIs for renderer
 const api = {
@@ -63,6 +138,28 @@ const api = {
 
   // 获取 Brain WebSocket URL
   getBrainUrl: () => ipcRenderer.invoke('get-brain-url'),
+
+  // 教学采集
+  teachingStart: () => ipcRenderer.invoke('teaching-start'),
+  teachingStop: () => ipcRenderer.invoke('teaching-stop'),
+  teachingAddNote: (payload: string | { text: string }) => ipcRenderer.invoke('teaching-note', payload),
+  teachingGetState: () => ipcRenderer.invoke('teaching-get-state'),
+  onTeachingEvent: (listener: (payload: TeachingEventPayload) => void) => {
+    const handler = (_event: IpcRendererEvent, payload: TeachingEventPayload) => listener(payload)
+    ipcRenderer.on('teaching-event', handler)
+    return () => ipcRenderer.removeListener('teaching-event', handler)
+  },
+  onTeachingState: (listener: (payload: TeachingStateSnapshot) => void) => {
+    const handler = (_event: IpcRendererEvent, payload: TeachingStateSnapshot) => listener(payload)
+    ipcRenderer.on('teaching-state', handler)
+    return () => ipcRenderer.removeListener('teaching-state', handler)
+  },
+  onTeachingError: (listener: (payload: { message: string; error?: string }) => void) => {
+    const handler = (_event: IpcRendererEvent, payload: { message: string; error?: string }) =>
+      listener(payload)
+    ipcRenderer.on('teaching-error', handler)
+    return () => ipcRenderer.removeListener('teaching-error', handler)
+  },
 
   // 下载管理
   getDownloads: () => ipcRenderer.invoke('downloads-get'),

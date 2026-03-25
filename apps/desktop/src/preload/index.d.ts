@@ -62,6 +62,81 @@ export type LLMConnectionTestResult = {
   error?: string
 }
 
+export type TeachingTimelineItemKind = 'action' | 'note' | 'system'
+export type TeachingArtifactKind = 'snapshot_delta'
+export type TeachingActionType =
+  | 'click'
+  | 'input'
+  | 'change'
+  | 'submit'
+  | 'navigate'
+  | 'navigate_in_page'
+  | 'load'
+  | 'tab_select'
+  | 'tab_switch_ignored'
+
+export type TeachingTimelineItem = {
+  id: string
+  kind: TeachingTimelineItemKind
+  createdAt: string
+  tabId: number | null
+  url?: string
+  title?: string
+  actionType?: TeachingActionType
+  summary: string
+  detail?: Record<string, unknown>
+  artifactId?: string | null
+}
+
+export type TeachingArtifact = {
+  id: string
+  sessionId: string
+  itemId: string
+  kind: TeachingArtifactKind
+  path: string
+  summary: string
+  createdAt: string
+  sizeBytes: number
+}
+
+export type TeachingSessionRecord = {
+  id: string
+  status: 'idle' | 'recording' | 'processing' | 'review' | 'stopped' | 'interrupted' | 'saved'
+  lockedTabId: number
+  lockedTabTitle?: string
+  lockedTabUrl?: string
+  createdAt: string
+  updatedAt: string
+  startedAt: string
+  stoppedAt?: string | null
+  notes: string[]
+  timeline: TeachingTimelineItem[]
+  artifacts: TeachingArtifact[]
+}
+
+export type TeachingStateSnapshot = {
+  activeSessionId: string | null
+  activeSession: TeachingSessionRecord | null
+  sessions: TeachingSessionRecord[]
+  runtime: {
+    attachedWebContentsId: number | null
+    pendingSnapshotItemId: string | null
+    pendingSnapshotReason: string | null
+    lockedTabActive: boolean
+  }
+}
+
+export type TeachingEventPayload = {
+  type: string
+  sessionId?: string | null
+  createdAt?: string
+  item?: TeachingTimelineItem
+  artifact?: TeachingArtifact
+  message?: string
+  error?: string
+  [key: string]: unknown
+}
+
 declare global {
   interface Window {
     electron: ElectronAPI & {
@@ -143,6 +218,14 @@ declare global {
       stop: () => void
       // 获取 Brain WebSocket URL
       getBrainUrl: () => Promise<string>
+      // 教学采集
+      teachingStart: () => Promise<TeachingStateSnapshot>
+      teachingStop: () => Promise<TeachingStateSnapshot>
+      teachingAddNote: (payload: string | { text: string }) => Promise<TeachingStateSnapshot>
+      teachingGetState: () => Promise<TeachingStateSnapshot>
+      onTeachingEvent: (listener: (payload: TeachingEventPayload) => void) => () => void
+      onTeachingState: (listener: (payload: TeachingStateSnapshot) => void) => () => void
+      onTeachingError: (listener: (payload: { message: string; error?: string }) => void) => () => void
       // 渲染页导出
       renderExport: (payload: {
         format: 'md' | 'html' | 'pdf' | 'docx' | 'txt' | 'png' | 'jpg'
