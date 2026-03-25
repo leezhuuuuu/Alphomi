@@ -24,12 +24,16 @@ import {
   ListChecks,
   ChevronUp,
   PlayCircle,
+  BookOpen,
   Plus,
   MessageSquare,
   Trash2,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { TeachingWorkspace } from "./TeachingWorkspace";
+import { useTeachingModeState } from "./useTeachingModeState";
+import { TeachingContextSnapshot } from "./teachingTypes";
 
 const HEADER_HORIZONTAL_PADDING = 28;
 const HEADER_CONTROL_GAP = 8;
@@ -1541,10 +1545,12 @@ export function Sidebar({
   sessionId,
   collapsed = false,
   onMinWidthChange,
+  activeTab,
 }: {
   sessionId: string | null;
   collapsed?: boolean;
   onMinWidthChange?: (width: number) => void;
+  activeTab?: TeachingContextSnapshot | null;
 }) {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -1608,12 +1614,21 @@ export function Sidebar({
   const [subAgentRuns, setSubAgentRuns] = useState<Record<string, SubAgentRun>>(
     {},
   );
+  const wsRef = useRef<WebSocket | null>(null);
+  const sendTeachingPayload = useCallback((payload: Record<string, unknown>) => {
+    const ws = wsRef.current;
+    if (!ws || ws.readyState !== WebSocket.OPEN) return false;
+    ws.send(JSON.stringify(payload));
+    return true;
+  }, []);
+  const teaching = useTeachingModeState(
+    activeTab || {},
+    sendTeachingPayload,
+  );
   const activeDispatchRef = useRef<string | null>(null);
   const messagesRef = useRef<Message[]>([]);
   const activeChatSessionIdRef = useRef<string | null>(null);
   const turnThoughtBufferRef = useRef<Record<string, string>>({});
-
-  const wsRef = useRef<WebSocket | null>(null);
   const lastUserMessageIdRef = useRef<string | null>(null);
   const activityIdleTimerRef = useRef<number | null>(null);
   const workingTimerRef = useRef<number | null>(null);
@@ -1636,6 +1651,7 @@ export function Sidebar({
   const modeMenuRef = useRef<HTMLDivElement>(null);
   const sessionMenuRef = useRef<HTMLDivElement>(null);
   const createChatButtonRef = useRef<HTMLButtonElement>(null);
+  const teachingButtonRef = useRef<HTMLButtonElement>(null);
   const headerModeControlRef = useRef<HTMLDivElement>(null);
   const headerSecurityControlRef = useRef<HTMLDivElement>(null);
   const headerConnectionControlRef = useRef<HTMLDivElement>(null);
@@ -1688,6 +1704,7 @@ export function Sidebar({
         headerSecurityControlRef.current,
         headerConnectionControlRef.current,
         headerContextControlRef.current,
+        teachingButtonRef.current,
       ],
       HEADER_CONTROL_GAP,
     );
@@ -1709,6 +1726,7 @@ export function Sidebar({
       headerSecurityControlRef.current,
       headerConnectionControlRef.current,
       headerContextControlRef.current,
+      teachingButtonRef.current,
     ].forEach((node) => {
       if (node) observer.observe(node);
     });
@@ -2060,6 +2078,11 @@ export function Sidebar({
           try {
             const data = JSON.parse(event.data);
             console.log("[Sidebar] WS parsed data:", data);
+
+            if (typeof data.type === "string" && data.type.startsWith("teaching_")) {
+              teaching.ingestSocketEvent(data);
+              return;
+            }
 
             // 核心逻辑：拦截审批请求
             if (data.type === "approval_request") {
@@ -3023,6 +3046,11 @@ export function Sidebar({
   const currentChatSession =
     chatSessions.find((session) => session.id === activeChatSessionId) || null;
   const currentChatTitle = currentChatSession?.title || "新对话";
+  const isTeachingActive = teaching.mode !== "chat";
+
+  if (isTeachingActive) {
+    return <TeachingWorkspace teaching={teaching} />;
+  }
 
   return (
     <div className="relative flex h-full flex-col bg-[var(--assistant-surface)] text-[color:var(--text-primary)]">
@@ -3165,6 +3193,18 @@ export function Sidebar({
               style={{ boxShadow: "var(--shadow-soft)" }}
             >
               <Plus size={14} />
+            </button>
+
+            <button
+              ref={teachingButtonRef}
+              type="button"
+              onClick={teaching.openTeachingSetup}
+              className="flex h-9 items-center gap-1.5 rounded-[12px] border border-[color:var(--field-border-strong)] bg-[var(--field-focus-ring)] px-3 text-[11px] font-semibold text-[color:var(--theme-accent)] transition-all hover:brightness-95"
+              title="进入教学模式"
+              style={{ boxShadow: "var(--shadow-soft)" }}
+            >
+              <BookOpen size={14} />
+              Teach
             </button>
           </div>
 
