@@ -7,9 +7,12 @@ from .benchmark_mode import BenchmarkWorkflow, build_benchmark_system_prompt
 from .fast_mode import FastWorkflow, build_fast_system_prompt
 from .agent_node import build_agent_node_system_prompt
 from .research_mode import ResearchWorkflow
+from .teaching_mode import TeachingInvestigatorWorkflow, build_teaching_system_prompt
 
 
 def create_workflow(mode: str | None, context: AgentContext) -> BaseWorkflow:
+    if mode == "teaching":
+        return TeachingInvestigatorWorkflow(context)
     if mode == "advanced":
         return AdvancedWorkflow(context)
     if mode == "benchmark":
@@ -20,6 +23,8 @@ def create_workflow(mode: str | None, context: AgentContext) -> BaseWorkflow:
 
 
 def get_system_prompt_for_mode(mode: str | None) -> str:
+    if mode == "teaching":
+        return build_teaching_system_prompt()
     if mode == "advanced":
         return build_advanced_system_prompt()
     if mode == "benchmark":

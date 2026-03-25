@@ -8,6 +8,14 @@ from .exec_tools import ExecCommandTool, WriteStdinTool, FileEditTool
 from .remote_definitions import RemoteBrowserTool
 from .todo_tool import TodoListTool, ComplexTodoListTool  # <--- [新增] 导入
 from .dispatch_tool import DispatchSubAgentTool
+from .teaching_tools import (
+    GetTeachingCaseOverviewTool,
+    ReadTeachingTimelineTool,
+    ReadTeachingArtifactTool,
+    GenerateProcessCardsTool,
+    LocateCardEvidenceTool,
+    SaveProcessAssetTool,
+)
 from ..core.tool_base import registry
 from ..core.discovery import discover_driver_url
 
@@ -39,6 +47,12 @@ def _local_candidates() -> Iterable:
         ComplexTodoListTool(),
         DispatchSubAgentTool(),
         SkillsManagementTool(),
+        GetTeachingCaseOverviewTool(),
+        ReadTeachingTimelineTool(),
+        ReadTeachingArtifactTool(),
+        GenerateProcessCardsTool(),
+        LocateCardEvidenceTool(),
+        SaveProcessAssetTool(),
     ]
 
 
