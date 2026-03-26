@@ -112,9 +112,11 @@ export function TeachingTimeline({
                 {item.artifactPath ? (
                   <div className="mt-2 rounded-[12px] border border-[color:var(--border-soft)] bg-black/[0.03] px-2.5 py-2 text-[11px] text-[color:var(--text-secondary)] dark:bg-white/[0.03]">
                     <div className="font-semibold text-[color:var(--text-primary)]">
-                      页面变化文件
+                      页面变化证据
                     </div>
-                    <div className="mt-0.5 break-all">{item.artifactPath}</div>
+                    <div className="mt-0.5">
+                      这一步已经保留了详细页面变化记录，AI 需要时可以继续读取，不会直接把长内容挤进当前视图。
+                    </div>
                   </div>
                 ) : null}
               </div>

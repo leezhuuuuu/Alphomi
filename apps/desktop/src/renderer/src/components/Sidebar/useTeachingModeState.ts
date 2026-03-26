@@ -160,27 +160,42 @@ const mapSessionTimeline = (session: NativeTeachingSession): TeachingTimelineIte
 };
 
 const formatEvidence = (refs: unknown): string => {
-  if (!Array.isArray(refs) || refs.length === 0) return "待补充";
-  return refs
-    .map((ref) => {
-      if (!ref || typeof ref !== "object") return "";
-      const record = ref as Record<string, unknown>;
-      const type = String(record.type || "").trim();
-      if (type === "timeline_range") {
-        const start = String(record.startItemId || record.start_item_id || "").trim();
-        const end = String(record.endItemId || record.end_item_id || "").trim();
-        return start && end ? `${start} → ${end}` : start || end;
-      }
-      if (type === "timeline_item") {
-        return String(record.itemId || record.item_id || "").trim();
-      }
-      if (type === "artifact") {
-        return String(record.artifactId || record.artifact_id || "").trim();
-      }
-      return "";
-    })
-    .filter(Boolean)
-    .join(" · ");
+  if (!Array.isArray(refs) || refs.length === 0) {
+    return "可在原始记录中查看对应证据";
+  }
+
+  let timelineRangeCount = 0;
+  let timelineItemCount = 0;
+  let artifactCount = 0;
+
+  for (const ref of refs) {
+    if (!ref || typeof ref !== "object") continue;
+    const record = ref as Record<string, unknown>;
+    const type = String(record.type || "").trim();
+    if (type === "timeline_range") {
+      timelineRangeCount += 1;
+    } else if (type === "timeline_item") {
+      timelineItemCount += 1;
+    } else if (type === "artifact") {
+      artifactCount += 1;
+    }
+  }
+
+  const evidenceParts: string[] = [];
+  const timelineCount = timelineRangeCount + timelineItemCount;
+
+  if (timelineCount > 0) {
+    evidenceParts.push(`${timelineCount} 段原始记录`);
+  }
+  if (artifactCount > 0) {
+    evidenceParts.push(`${artifactCount} 个页面变化证据`);
+  }
+
+  if (evidenceParts.length === 0) {
+    return "可在原始记录中查看对应证据";
+  }
+
+  return `对应 ${evidenceParts.join("，")}`;
 };
 
 const mapDraftCards = (draft: any): TeachingReviewCard[] => {
@@ -574,6 +589,20 @@ export function useTeachingModeState(
   };
 
   const cancelTeaching = () => {
+    if (modeRef.current === "processing") {
+      const confirmed = window.confirm(
+        "当前正在整理教学记录。放弃后会退出教学界面，未保存的流程草稿不会保留。是否继续？",
+      );
+      if (!confirmed) return;
+    }
+
+    if (modeRef.current === "review" && !savedAt) {
+      const confirmed = window.confirm(
+        "当前流程草稿尚未保存。退出后会离开教学界面，是否继续？",
+      );
+      if (!confirmed) return;
+    }
+
     resetToChat();
   };
 

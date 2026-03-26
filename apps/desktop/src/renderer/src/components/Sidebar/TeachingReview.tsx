@@ -41,6 +41,9 @@ export function TeachingReview({
             <div className="mt-1 text-[12px] text-[color:var(--text-secondary)]">
               {draftSummary}
             </div>
+            <div className="mt-2 text-[11px] leading-5 text-[color:var(--text-tertiary)]">
+              当前为只读证据视图。若要继续修订流程，请先返回流程草稿。
+            </div>
           </div>
           <button
             type="button"
@@ -147,7 +150,7 @@ export function TeachingReview({
             </div>
 
             <div className="mt-3 text-[11px] text-[color:var(--text-tertiary)]">
-              证据锚点: {card.evidence}
+              证据说明：{card.evidence}
             </div>
 
             <div className="mt-3">

@@ -9,6 +9,19 @@ import {
 } from "lucide-react";
 import { TeachingContextSnapshot, TeachingProcessingStep, TeachingReviewScope, TeachingViewMode } from "./teachingTypes";
 
+const formatContextMeta = (context: TeachingContextSnapshot) => {
+  const title = context.title?.trim() || "当前标签页";
+  const url = context.url?.trim();
+  if (!url) return `${title} · 仅记录当前标签页`;
+
+  try {
+    const parsed = new URL(url);
+    return `${title} · ${parsed.hostname} · 仅记录当前标签页`;
+  } catch {
+    return `${title} · 仅记录当前标签页`;
+  }
+};
+
 interface TeachingHeaderProps {
   mode: TeachingViewMode;
   context: TeachingContextSnapshot;
@@ -81,7 +94,10 @@ export function TeachingHeader({
   const activeStep = processingSteps.find((step) => step.state === "active");
   const contextLine = isLibrary
     ? "浏览并手动查看已保存的教学流程"
-    : `${context.title || "当前标签页"} · ${context.url || "等待当前标签页上下文"} · 仅记录当前标签页`;
+    : formatContextMeta(context);
+  const summaryLine = [draftTitle?.trim(), draftSummary?.trim()]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <div className="border-b border-[color:var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.12)_0%,transparent_100%)] px-3.5 py-3">
@@ -91,7 +107,7 @@ export function TeachingHeader({
         </div>
         <div className="min-w-0 flex-1">
           <div className="text-[10px] uppercase tracking-[0.18em] text-[color:var(--text-tertiary)]">
-            Teaching mode
+            教学工作台
           </div>
           <div className="mt-0.5 flex items-center gap-2">
             <h2 className="truncate text-[16px] font-semibold text-[color:var(--text-primary)]">
@@ -106,9 +122,11 @@ export function TeachingHeader({
           <div className="mt-1 text-[12px] leading-5 text-[color:var(--text-secondary)]">
             {contextLine}
           </div>
-          <div className="mt-1 text-[11px] text-[color:var(--text-tertiary)]">
-            {draftTitle} · {draftSummary}
-          </div>
+          {summaryLine ? (
+            <div className="mt-1 line-clamp-2 text-[11px] leading-5 text-[color:var(--text-tertiary)]">
+              {summaryLine}
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -128,7 +146,7 @@ export function TeachingHeader({
               onClick={onCancel}
               className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--border-soft)] bg-[var(--shell-surface-strong)]/90 px-3 py-1.5 text-[11px] font-semibold text-[color:var(--text-secondary)] transition-colors hover:text-[color:var(--text-primary)]"
             >
-              取消
+              返回对话
             </button>
             <button
               type="button"
@@ -160,7 +178,7 @@ export function TeachingHeader({
               className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--border-soft)] bg-[var(--shell-surface-strong)]/90 px-3 py-1.5 text-[11px] font-semibold text-[color:var(--text-secondary)] transition-colors hover:text-[color:var(--text-primary)]"
             >
               <ChevronLeft size={12} />
-              退出教学
+              放弃本次教学
             </button>
           </>
         ) : null}
@@ -178,7 +196,7 @@ export function TeachingHeader({
               onClick={onCancel}
               className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--border-soft)] bg-[var(--shell-surface-strong)]/90 px-3 py-1.5 text-[11px] font-semibold text-[color:var(--text-secondary)] transition-colors hover:text-[color:var(--text-primary)]"
             >
-              放弃
+              放弃本次教学
             </button>
           </>
         ) : null}
@@ -217,7 +235,7 @@ export function TeachingHeader({
               onClick={onExit}
               className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--border-soft)] bg-[var(--shell-surface-strong)]/90 px-3 py-1.5 text-[11px] font-semibold text-[color:var(--text-secondary)] transition-colors hover:text-[color:var(--text-primary)]"
             >
-              退出教学
+              {savedAt ? "完成" : "退出教学"}
             </button>
             <button
               type="button"
