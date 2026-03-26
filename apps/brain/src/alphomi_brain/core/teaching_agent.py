@@ -299,6 +299,15 @@ class TeachingInvestigatorAgent:
                         args = json.loads(args_text) if isinstance(args_text, str) and args_text.strip() else {}
                     except Exception:
                         args = {}
+                    tool_step_id = self._phase_for_tool(name)
+                    await emit(
+                        self._processing_log_payload(
+                            tool_step_id,
+                            f"正在调用工具：{self._display_tool_name(name)}",
+                            self._describe_tool_call(name, args),
+                            kind="artifact" if name == "read_teaching_artifact" else "system",
+                        )
+                    )
                     tool_result = await self._execute_tool(
                         teaching_session_id=teaching_session_id,
                         task_type=task_type,
@@ -306,6 +315,15 @@ class TeachingInvestigatorAgent:
                         args=args,
                         emit=emit,
                     )
+                    tool_result_summary = self._summarize_tool_result(name, tool_result)
+                    if tool_result_summary:
+                        await emit(
+                            self._processing_finding_payload(
+                                tool_step_id,
+                                f"{self._display_tool_name(name)} 已返回结果",
+                                tool_result_summary,
+                            )
+                        )
                     if name == "generate_process_cards" and tool_result.get("draftId"):
                         current_draft = teaching_store.get_current_draft(teaching_session_id)
                         if current_draft:
@@ -339,13 +357,6 @@ class TeachingInvestigatorAgent:
         emit: TeachingEventSink,
     ) -> Dict[str, Any]:
         if name == "get_teaching_case_overview":
-            await emit(
-                self._processing_log_payload(
-                    "segment",
-                    "正在读取教学总览",
-                    "先查看轻量总览，再决定是否继续读取更重的证据。",
-                )
-            )
             return teaching_store.get_overview(teaching_session_id) or {}
         if name == "read_teaching_timeline":
             result = teaching_store.read_timeline(
@@ -360,7 +371,7 @@ class TeachingInvestigatorAgent:
             await emit(
                 self._processing_log_payload(
                     "segment",
-                    "正在核对教学记录片段",
+                    "已读取教学记录片段",
                     f"本次读取了 {item_count} 条记录，用于确认阶段边界和目标。",
                 )
             )
@@ -380,8 +391,9 @@ class TeachingInvestigatorAgent:
             await emit(
                 self._processing_log_payload(
                     "goal",
-                    "正在读取页面变化文件",
+                    "已读取页面变化文件",
                     _truncate(artifact.get("summary") or "正在补充页面变化证据。", 120),
+                    kind="artifact",
                 )
             )
             return {
@@ -735,12 +747,15 @@ class TeachingInvestigatorAgent:
         step_id: str,
         label: str,
         detail: str,
+        *,
+        kind: str = "system",
     ) -> Dict[str, Any]:
         return {
             "type": "teaching_processing_log",
             "stepId": step_id,
             "label": label,
             "detail": detail,
+            "kind": kind,
             "createdAt": _now_iso(),
         }
 
@@ -757,6 +772,78 @@ class TeachingInvestigatorAgent:
             "summary": summary,
             "createdAt": _now_iso(),
         }
+
+    def _phase_for_tool(self, name: str) -> str:
+        if name in {"get_teaching_case_overview", "read_teaching_timeline"}:
+            return "segment"
+        if name == "read_teaching_artifact":
+            return "goal"
+        if name == "generate_process_cards":
+            return "cards"
+        return "segment"
+
+    def _display_tool_name(self, name: str) -> str:
+        return {
+            "get_teaching_case_overview": "读取教学总览",
+            "read_teaching_timeline": "读取教学记录片段",
+            "read_teaching_artifact": "读取页面变化证据",
+            "generate_process_cards": "生成流程卡片",
+            "locate_card_evidence": "定位卡片证据",
+            "save_process_asset": "保存流程资产",
+        }.get(name, name)
+
+    def _describe_tool_call(self, name: str, args: Dict[str, Any]) -> str:
+        if name == "get_teaching_case_overview":
+            return "先读取轻量总览，判断接下来应该调查哪一段证据。"
+        if name == "read_teaching_timeline":
+            mode = _clean_text(args.get("mode")) or "range"
+            max_items = int(args.get("maxItems") or 0) or None
+            if mode == "items":
+                item_ids = args.get("itemIds") if isinstance(args.get("itemIds"), list) else []
+                return f"按指定条目读取教学记录，目标 {len(item_ids)} 条。"
+            if max_items:
+                return f"按范围读取教学记录，最多查看 {max_items} 条。"
+            return "按范围读取教学记录，进一步确认阶段边界和目标。"
+        if name == "read_teaching_artifact":
+            mode = _clean_text(args.get("mode")) or "summary"
+            return "读取页面变化证据摘要。" if mode == "summary" else "读取页面变化证据全文。"
+        if name == "generate_process_cards":
+            mode = _clean_text(args.get("mode")) or "create"
+            card_count = len(args.get("cards") or []) if isinstance(args.get("cards"), list) else 0
+            return f"准备以 {mode} 模式生成流程卡片，当前提交 {card_count} 张卡片。"
+        if name == "save_process_asset":
+            return "准备把当前已确认的流程草稿保存为私有流程资产。"
+        return "Agent 正在调用下一步需要的工具。"
+
+    def _summarize_tool_result(self, name: str, result: Dict[str, Any]) -> str:
+        if name == "get_teaching_case_overview":
+            stats = (result or {}).get("timelineStats") or {}
+            return (
+                f"总览中包含 {int(stats.get('actionItems') or 0)} 条操作、"
+                f"{int(stats.get('noteItems') or 0)} 条备注、"
+                f"{int(stats.get('artifactCount') or 0)} 个页面变化证据。"
+            )
+        if name == "read_teaching_timeline":
+            item_count = len((result or {}).get("items") or [])
+            return f"已拿到 {item_count} 条教学记录，足够继续判断阶段边界。"
+        if name == "read_teaching_artifact":
+            mode = _clean_text((result or {}).get("mode")) or "summary"
+            summary = _truncate((result or {}).get("summary") or "页面变化证据已补充。", 100)
+            return (
+                f"已读取页面变化{ '全文' if mode == 'full' else '摘要' }。{summary}"
+            )
+        if name == "generate_process_cards":
+            card_count = int((result or {}).get("cardCount") or 0)
+            if card_count > 0:
+                return f"已经生成 {card_count} 个阶段卡片，准备切换到审阅界面。"
+            return ""
+        if name == "save_process_asset":
+            title = _clean_text((result or {}).get("title"))
+            status = _clean_text((result or {}).get("status"))
+            if status == "saved":
+                return f"流程资产“{title or DEFAULT_ASSET_TITLE}”已保存。"
+            return "保存流程资产时出现异常。"
+        return ""
 
     async def _begin_processing(
         self,
