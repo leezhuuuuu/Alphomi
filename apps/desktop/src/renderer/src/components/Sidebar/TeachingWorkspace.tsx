@@ -1,6 +1,7 @@
 import React from "react";
 import { TeachingComposer } from "./TeachingComposer";
 import { TeachingHeader } from "./TeachingHeader";
+import { TeachingProcessingTrace } from "./TeachingProcessingTrace";
 import { TeachingReview } from "./TeachingReview";
 import { TeachingSavedAssets } from "./TeachingSavedAssets";
 import { TeachingTimeline } from "./TeachingTimeline";
@@ -182,19 +183,22 @@ export function TeachingWorkspace({ teaching }: TeachingWorkspaceProps) {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="text-[10px] uppercase tracking-[0.16em] text-[color:var(--text-tertiary)]">
-                    AI 处理日志
+                    Agent 工作记录
                   </div>
                   <div className="mt-1 text-[14px] font-semibold text-[color:var(--text-primary)]">
-                    AI 正在按时间顺序整理这次教学数据
+                    Agent 正在一步一步调查和整理这次教学数据
                   </div>
                   <div className="mt-1 text-[12px] leading-5 text-[color:var(--text-secondary)]">
-                    你可以在这里持续看到它正在读取什么、核对什么、以及刚刚确认了哪些阶段性发现。
+                    每个阶段都可以展开或折叠。展开后可以看到它在该阶段里读取了什么、核对了什么，以及得出了哪些中间结论。
                   </div>
                 </div>
               </div>
 
               <div className="mt-3">
-                <TeachingTimeline items={teaching.processingFeed} variant="processing" />
+                <TeachingProcessingTrace
+                  steps={teaching.processingSteps}
+                  items={teaching.processingFeed}
+                />
               </div>
             </div>
           </div>

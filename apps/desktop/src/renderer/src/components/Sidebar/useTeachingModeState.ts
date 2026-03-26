@@ -288,6 +288,7 @@ const buildProcessingFeedItem = ({
   detail,
   createdAt,
   badge,
+  phaseId,
 }: {
   kind?: TeachingTimelineItem["kind"];
   title: string;
@@ -295,6 +296,7 @@ const buildProcessingFeedItem = ({
   detail?: string;
   createdAt?: string;
   badge?: string;
+  phaseId?: string;
 }): TeachingTimelineItem => ({
   id: uid(),
   kind,
@@ -303,6 +305,7 @@ const buildProcessingFeedItem = ({
   timestamp: createdAt || nowIso(),
   detail,
   badge,
+  phaseId,
 });
 
 export interface TeachingModeState {
@@ -387,6 +390,10 @@ export function useTeachingModeState(
   const modeRef = useRef<TeachingViewMode>("chat");
   const currentSessionIdRef = useRef<string | null>(null);
   const timelineRef = useRef<TeachingTimelineItem[]>([]);
+  const processingStepsRef = useRef<TeachingProcessingStep[]>(PROCESSING_STEPS.map((step) => ({
+    ...step,
+    state: "pending",
+  })));
   const libraryReturnModeRef = useRef<Extract<TeachingViewMode, "setup" | "review">>(
     "setup",
   );
@@ -413,6 +420,10 @@ export function useTeachingModeState(
   useEffect(() => {
     timelineRef.current = timeline;
   }, [timeline]);
+
+  useEffect(() => {
+    processingStepsRef.current = processingSteps;
+  }, [processingSteps]);
 
   useEffect(() => {
     if (mode !== "recording" || !startedAt) {
@@ -807,18 +818,28 @@ export function useTeachingModeState(
     setProcessingFeed((previous) => [...previous, entry]);
   };
 
+  const getActiveProcessingPhaseId = () =>
+    processingStepsRef.current.find((step) => step.state === "active")?.id || "segment";
+
   const appendProcessingLogEntry = (payload: any) => {
     const stepId = String(payload.stepId || payload.step_id || "").trim();
     const stepMeta = stepMetaById[stepId];
+    const kind =
+      payload.kind === "artifact"
+        ? "artifact"
+        : payload.kind === "finding"
+          ? "finding"
+          : "system";
     const title = String(payload.label || payload.title || stepMeta?.label || "处理中").trim();
     const description = String(payload.detail || payload.description || "").trim();
     appendProcessingFeedEntry(
       buildProcessingFeedItem({
-        kind: "system",
+        kind,
         title,
         description: description || "AI 正在继续整理教学数据。",
         createdAt: String(payload.createdAt || payload.created_at || "").trim() || undefined,
         badge: stepMeta?.label || undefined,
+        phaseId: stepId || getActiveProcessingPhaseId(),
       }),
     );
   };
@@ -835,6 +856,7 @@ export function useTeachingModeState(
         description: summary || "AI 刚刚确认了一条新的处理中发现。",
         createdAt: String(payload.createdAt || payload.created_at || "").trim() || undefined,
         badge: stepMeta?.label || "发现",
+        phaseId: stepId || getActiveProcessingPhaseId(),
       }),
     );
   };
@@ -955,6 +977,7 @@ export function useTeachingModeState(
                 : stepMeta?.description || "AI 正在继续整理教学数据。",
             createdAt: nowIso(),
             badge: stepMeta?.label || undefined,
+            phaseId: stepId || getActiveProcessingPhaseId(),
           }),
         );
       }
@@ -979,6 +1002,7 @@ export function useTeachingModeState(
           description: buildProcessingOverviewSummary(nextOverview),
           createdAt: String(payload.createdAt || "").trim() || undefined,
           badge: nextOverview.taskType === "revise_draft" ? "修订" : "整理",
+          phaseId: "digest",
         }),
       );
       return;
@@ -1023,6 +1047,7 @@ export function useTeachingModeState(
             description: content,
             createdAt: nowIso(),
             badge: "反馈",
+            phaseId: getActiveProcessingPhaseId(),
           }),
         );
       }

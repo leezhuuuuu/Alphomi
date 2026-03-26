@@ -32,6 +32,7 @@ export interface TeachingTimelineItem {
   detail?: string;
   artifactPath?: string;
   badge?: string;
+  phaseId?: string;
 }
 
 export interface TeachingProcessingStep {
