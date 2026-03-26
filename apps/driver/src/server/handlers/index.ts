@@ -1057,6 +1057,12 @@ export const ToolHandlers: Partial<Record<ToolName, Handler>> = {
     const resolvedInputKind = resolveInputKind(inputKind, element, recipe);
     let actualInputDescriptor: string | null = null;
     let scopedContext = null;
+    let submitVerification:
+      | {
+          result: 'confirmed' | 'unconfirmed';
+          signals: string[];
+        }
+      | null = null;
     console.log(`[Handler] browser_type called for ref: ${ref}, inputKind=${resolvedInputKind}`);
 
     if (text !== undefined) {
@@ -1087,6 +1093,7 @@ export const ToolHandlers: Partial<Record<ToolName, Handler>> = {
           elementHint: element,
         });
       }
+      const beforeSubmitState = await captureInteractionState(session);
       console.log(`[Handler] Pressing 'Enter'...`);
       // 优先在元素上按回车，如果元素没了(比如填完跳转了)，则在页面上按
       try {
@@ -1094,6 +1101,7 @@ export const ToolHandlers: Partial<Record<ToolName, Handler>> = {
       } catch (e) {
           await session.getPage().keyboard.press('Enter');
       }
+      submitVerification = await verifyInteractionChange(session, beforeSubmitState);
       await session.clearScopedActionContext();
       console.log(`[Handler] 'Enter' pressed.`);
     }
@@ -1101,10 +1109,15 @@ export const ToolHandlers: Partial<Record<ToolName, Handler>> = {
     // ... snapshot ...
     const snapshot = await session.captureSnapshot(AUTO_SNAPSHOT_FULL);
     const scopeHint = compactScopeHint(scopedContext);
+    const submitResultText = submit
+      ? submitVerification?.result === 'confirmed'
+        ? '；Enter 后检测到页面或焦点变化'
+        : '；Enter 已发送，但暂未检测到明显变化'
+      : '';
     return {
         result: text !== undefined
-          ? `Typed "${previewText(text)}" into ${ref} (${resolvedInputKind})${actualInputDescriptor ? ` -> ${actualInputDescriptor}` : ''}${formatScopedSubmitCandidates(scopedContext?.submitCandidates)}${formatScopeHintText(scopeHint)}`
-          : `Pressed Enter on ${ref}`,
+          ? `Typed "${previewText(text)}" into ${ref} (${resolvedInputKind})${actualInputDescriptor ? ` -> ${actualInputDescriptor}` : ''}${formatScopedSubmitCandidates(scopedContext?.submitCandidates)}${submitResultText}${formatScopeHintText(scopeHint)}`
+          : `Pressed Enter on ${ref}${submitResultText}`,
         snapshot,
         scopeHint: scopeHint || undefined,
     };
