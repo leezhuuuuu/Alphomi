@@ -1,12 +1,19 @@
 from __future__ import annotations
 
-from .prompt_utils import format_tool_list, has_any, has_all, resolve_available_tool_names
+from .prompt_utils import (
+    format_tool_list,
+    get_saved_teaching_catalog_lines,
+    has_any,
+    has_all,
+    resolve_available_tool_names,
+)
 from .streaming_workflow import StreamingWorkflow
 
 
 FAST_LOCAL_TOOLS = {
     "manage_todos",
     "manage_skills",
+    "manage_teachings",
     "exec_command",
     "write_stdin",
     "file_edit",
@@ -50,6 +57,8 @@ def build_fast_system_prompt(available_tool_names: set[str] | None = None) -> st
     names = resolve_available_tool_names(FAST_DEFAULT_TOOL_NAMES, available_tool_names)
     installed_skills = _get_installed_skill_names()
     skills_block = "\n".join(installed_skills) if installed_skills else "none"
+    saved_teachings = get_saved_teaching_catalog_lines()
+    teachings_block = "\n".join(saved_teachings) if saved_teachings else "none"
 
     lines: list[str] = ["You are the Alphomi agent using the minimax-m2.1 model.", ""]
     lines.append("# Core Capabilities")
@@ -66,6 +75,12 @@ def build_fast_system_prompt(available_tool_names: set[str] | None = None) -> st
 
     if "manage_skills" in names:
         lines.append(f"{capability_index}. Skill Extension: You can self-evolve using the manage_skills tool.")
+        capability_index += 1
+
+    if "manage_teachings" in names:
+        lines.append(
+            f"{capability_index}. Teaching Reuse: You can reuse previously saved teachings with the manage_teachings tool."
+        )
         capability_index += 1
 
     if has_any(names, "exec_command", "file_edit", "write_stdin"):
@@ -87,6 +102,19 @@ def build_fast_system_prompt(available_tool_names: set[str] | None = None) -> st
                 "2. To find skills, use manage_skills(action='search', query='...').",
                 "3. To install a skill, use manage_skills(action='install', name='...').",
                 "4. To learn a skill, use manage_skills(action='details', name='...').",
+            ]
+        )
+
+    if "manage_teachings" in names:
+        lines.extend(
+            [
+                "",
+                "# Teaching Reuse Rules (STRICT)",
+                "1. To check saved teachings, ALWAYS use manage_teachings(action='list').",
+                "2. To inspect one saved teaching, use manage_teachings(action='details', asset_id='...') or manage_teachings(action='details', title='...').",
+                "3. Do not assume a teaching applies only from its title.",
+                "4. When a saved teaching looks relevant, recommend it first before relying on it.",
+                "5. After the user confirms, read its details and use it as reference context for the current task only.",
             ]
         )
 
@@ -216,6 +244,9 @@ def build_fast_system_prompt(available_tool_names: set[str] | None = None) -> st
             "",
             "# Installed Skills (names only)",
             skills_block,
+            "",
+            "# Saved Teachings (lightweight catalog)",
+            teachings_block,
         ]
     )
 

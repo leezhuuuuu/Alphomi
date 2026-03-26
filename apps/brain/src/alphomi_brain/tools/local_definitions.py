@@ -3,6 +3,7 @@ import os
 from typing import Dict, Any
 from ..core.tool_base import BaseTool, RiskLevel
 from ..core.runtimes import WorkspaceManager, PythonRuntime, ShellRuntime
+from ..core.teaching_store import teaching_store
 
 workspace = WorkspaceManager()
 py_runtime = PythonRuntime(workspace)
@@ -180,4 +181,143 @@ class SkillsManagementTool(BaseTool):
         action = args.get("action")
         if action == "install":
             return RiskLevel.RISKY
+        return RiskLevel.SAFE
+
+
+class ManageTeachingsTool(BaseTool):
+    name = "manage_teachings"
+    description = """
+    Lightweight manager for saved teaching assets.
+    STRICT RULES:
+    1. To CHECK available teachings, ALWAYS use `action='list'`.
+    2. To READ one saved teaching, use `action='details'`.
+    3. Prefer `list` first when you need the latest catalog or asset ids.
+    4. Read `details` only for a specific teaching that is likely relevant.
+    """
+
+    @property
+    def parameters(self):
+        return {
+            "action": {
+                "type": "string",
+                "enum": ["list", "details"],
+                "description": "Operation to perform. Use 'list' first to inspect saved teachings.",
+            },
+            "asset_id": {
+                "type": "string",
+                "description": "Exact asset id for details.",
+            },
+            "title": {
+                "type": "string",
+                "description": "Teaching title for details when asset id is unknown.",
+            },
+            "limit": {
+                "type": "integer",
+                "description": "Maximum number of teachings to list.",
+            },
+        }
+
+    @property
+    def required_params(self):
+        return ["action"]
+
+    def _resolve_asset_by_title(self, title: str) -> tuple[dict | None, str | None]:
+        wanted = title.strip()
+        if not wanted:
+            return None, "Missing title."
+
+        assets = teaching_store.list_assets()
+        exact = [
+            asset for asset in assets
+            if isinstance(asset, dict) and str(asset.get("title") or "").strip() == wanted
+        ]
+        if len(exact) == 1:
+            return exact[0], None
+        if len(exact) > 1:
+            return None, (
+                "Multiple saved teachings share that title. "
+                "Use action='list' to inspect asset ids and call details with asset_id."
+            )
+
+        lowered = wanted.lower()
+        fuzzy = [
+            asset for asset in assets
+            if isinstance(asset, dict) and str(asset.get("title") or "").strip().lower() == lowered
+        ]
+        if len(fuzzy) == 1:
+            return fuzzy[0], None
+        if len(fuzzy) > 1:
+            return None, (
+                "Multiple saved teachings match that title. "
+                "Use action='list' to inspect asset ids and call details with asset_id."
+            )
+        return None, "Saved teaching not found."
+
+    async def execute(self, args: Dict[str, Any], context=None) -> str:
+        action = args.get("action")
+
+        if action == "list":
+            limit = args.get("limit")
+            try:
+                limit_num = int(limit) if limit is not None else 20
+            except Exception:
+                limit_num = 20
+            assets = teaching_store.list_assets(limit=max(1, limit_num))
+            if not assets:
+                return "No saved teachings yet."
+            summary = [
+                {
+                    "assetId": asset.get("assetId"),
+                    "title": asset.get("title"),
+                    "sourceDomain": asset.get("sourceDomain") or "",
+                    "cardCount": asset.get("cardCount") or 0,
+                    "createdAt": asset.get("createdAt") or "",
+                }
+                for asset in assets
+                if isinstance(asset, dict)
+            ]
+            return json.dumps(summary, ensure_ascii=False)
+
+        if action == "details":
+            asset_id = str(args.get("asset_id") or "").strip()
+            title = str(args.get("title") or "").strip()
+
+            detail = None
+            if asset_id:
+                detail = teaching_store.get_saved_asset(asset_id)
+                if not detail:
+                    return "Saved teaching not found."
+            elif title:
+                matched, error = self._resolve_asset_by_title(title)
+                if error:
+                    return error
+                detail = teaching_store.get_saved_asset(str((matched or {}).get("assetId") or "").strip())
+            else:
+                return "Provide asset_id or title when action='details'."
+
+            if not isinstance(detail, dict):
+                return "Saved teaching not found."
+
+            cards = detail.get("cards") if isinstance(detail.get("cards"), list) else []
+            payload = {
+                "assetId": detail.get("assetId"),
+                "title": detail.get("title"),
+                "sourceDomain": detail.get("sourceDomain") or "",
+                "sourceTitle": detail.get("sourceTitle") or "",
+                "cardCount": detail.get("cardCount") or len(cards),
+                "cards": [
+                    {
+                        "title": card.get("title") or "",
+                        "goal": card.get("goal") or "",
+                        "keyActions": card.get("keyActions") or [],
+                    }
+                    for card in cards
+                    if isinstance(card, dict)
+                ],
+            }
+            return json.dumps(payload, ensure_ascii=False)
+
+        return "Invalid action."
+
+    def calculate_risk(self, args: Dict[str, Any]) -> RiskLevel:
         return RiskLevel.SAFE

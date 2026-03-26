@@ -3,7 +3,7 @@ import os
 from typing import Iterable
 
 import httpx
-from .local_definitions import PythonTool, ShellTool, SkillsManagementTool
+from .local_definitions import PythonTool, ShellTool, SkillsManagementTool, ManageTeachingsTool
 from .exec_tools import ExecCommandTool, WriteStdinTool, FileEditTool
 from .remote_definitions import RemoteBrowserTool
 from .todo_tool import TodoListTool, ComplexTodoListTool  # <--- [新增] 导入
@@ -47,6 +47,7 @@ def _local_candidates() -> Iterable:
         ComplexTodoListTool(),
         DispatchSubAgentTool(),
         SkillsManagementTool(),
+        ManageTeachingsTool(),
         GetTeachingCaseOverviewTool(),
         ReadTeachingTimelineTool(),
         ReadTeachingArtifactTool(),
