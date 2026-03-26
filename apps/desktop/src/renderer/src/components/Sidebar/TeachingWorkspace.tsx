@@ -10,12 +10,48 @@ interface TeachingWorkspaceProps {
   teaching: TeachingModeState;
 }
 
+const ERROR_HINTS = ["失败", "无法", "失效", "未找到", "未连接", "请稍后重试"];
+
+const resolveStatusNotice = (teaching: TeachingModeState) => {
+  const summary = teaching.draft.summary?.trim();
+  if (!summary || teaching.mode === "processing" || teaching.mode === "setup") {
+    return null;
+  }
+
+  if (teaching.savedAt && teaching.mode === "review") {
+    return {
+      tone: "success" as const,
+      title: "流程已保存",
+      message: summary,
+    };
+  }
+
+  if (ERROR_HINTS.some((hint) => summary.includes(hint))) {
+    return {
+      tone: "error" as const,
+      title: teaching.mode === "library" ? "读取失败" : "当前操作未完成",
+      message: summary,
+    };
+  }
+
+  if (teaching.mode === "review" && !teaching.reviewCards.length) {
+    return {
+      tone: "warning" as const,
+      title: "还没有可审阅的流程卡片",
+      message: summary,
+    };
+  }
+
+  return null;
+};
+
 export function TeachingWorkspace({ teaching }: TeachingWorkspaceProps) {
   const isSetup = teaching.mode === "setup";
   const isRecording = teaching.mode === "recording";
   const isProcessing = teaching.mode === "processing";
   const isReview = teaching.mode === "review";
   const isLibrary = teaching.mode === "library";
+  const statusNotice = resolveStatusNotice(teaching);
   const headerDraftTitle = isLibrary
     ? teaching.selectedSavedAsset?.title || "已保存教学"
     : teaching.draft.title;
@@ -53,6 +89,25 @@ export function TeachingWorkspace({ teaching }: TeachingWorkspaceProps) {
       />
 
       <div className="flex-1 overflow-y-auto px-3.5 py-3 pb-32">
+        {statusNotice ? (
+          <div
+            className={`mb-3 rounded-[18px] border px-3.5 py-3 ${
+              statusNotice.tone === "success"
+                ? "border-emerald-200/80 bg-emerald-50/90 dark:border-emerald-800/40 dark:bg-emerald-500/10"
+                : statusNotice.tone === "error"
+                  ? "border-rose-200/80 bg-rose-50/90 dark:border-rose-800/40 dark:bg-rose-500/10"
+                  : "border-amber-200/80 bg-amber-50/90 dark:border-amber-800/40 dark:bg-amber-500/10"
+            }`}
+          >
+            <div className="text-[12px] font-semibold text-[color:var(--text-primary)]">
+              {statusNotice.title}
+            </div>
+            <div className="mt-1 text-[12px] leading-5 text-[color:var(--text-secondary)]">
+              {statusNotice.message}
+            </div>
+          </div>
+        ) : null}
+
         {isSetup ? (
           <div className="rounded-[24px] border border-[color:var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.18)_0%,rgba(255,255,255,0.06)_100%)] p-4 shadow-[var(--shadow-soft)]">
             <div className="mt-2 text-[15px] font-semibold text-[color:var(--text-primary)]">
