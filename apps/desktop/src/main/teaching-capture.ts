@@ -667,11 +667,52 @@ class TeachingCaptureController {
           };
 
           const inputTimers = new WeakMap();
+          const recentEnterSubmits = new WeakMap();
+
+          const isSingleLineInput = (target) => {
+            if (!target || !(target instanceof HTMLElement)) return false;
+            if (target instanceof HTMLTextAreaElement) return false;
+            if (target instanceof HTMLInputElement) {
+              const type = clean(target.type || target.getAttribute('type') || '', 40).toLowerCase();
+              return !['button', 'checkbox', 'radio', 'submit', 'reset', 'file', 'range', 'color'].includes(type);
+            }
+            if (target.isContentEditable) {
+              const multiline = clean(target.getAttribute('aria-multiline'), 10).toLowerCase();
+              return multiline !== 'true';
+            }
+            return false;
+          };
+
+          const rememberEnterSubmit = (target) => {
+            if (!target || !(target instanceof HTMLElement)) return;
+            const submitTarget = target.closest('form') || target;
+            recentEnterSubmits.set(submitTarget, Date.now());
+          };
+
+          const shouldSkipNativeSubmit = (target) => {
+            if (!target || !(target instanceof HTMLElement)) return false;
+            const submittedAt = recentEnterSubmits.get(target);
+            if (typeof submittedAt !== 'number') return false;
+            return Date.now() - submittedAt < 800;
+          };
+
+          const flushQueuedInput = (target, fallbackMode = '') => {
+            if (!target || !(target instanceof HTMLElement)) return;
+            const queued = inputTimers.get(target);
+            if (!queued) return;
+            window.clearTimeout(queued.timer);
+            emitDom(queued.kind, target, {
+              mode: queued.mode || fallbackMode || '',
+              flushed: true,
+            });
+            inputTimers.delete(target);
+          };
+
           const queueInput = (event) => {
             const target = event?.target;
             if (!target || !(target instanceof HTMLElement)) return;
             const previous = inputTimers.get(target);
-            if (previous) window.clearTimeout(previous);
+            if (previous?.timer) window.clearTimeout(previous.timer);
 
             const delay = event.type === 'input' ? ${INPUT_DEBOUNCE_MS} : 0;
             const timer = window.setTimeout(() => {
@@ -681,7 +722,11 @@ class TeachingCaptureController {
               inputTimers.delete(target);
             }, delay);
 
-            inputTimers.set(target, timer);
+            inputTimers.set(target, {
+              timer,
+              kind: event.type === 'input' ? 'input' : 'change',
+              mode: event.inputType || event.data || '',
+            });
           };
 
           document.addEventListener('click', (event) => {
@@ -694,9 +739,26 @@ class TeachingCaptureController {
 
           document.addEventListener('input', queueInput, true);
           document.addEventListener('change', queueInput, true);
+          document.addEventListener('keydown', (event) => {
+            const target = event?.target;
+            if (!target || !(target instanceof HTMLElement)) return;
+            if (event.key !== 'Enter' || event.isComposing) return;
+            if (!isSingleLineInput(target)) return;
+            if (target instanceof HTMLTextAreaElement && event.shiftKey) return;
+
+            flushQueuedInput(target, 'enter');
+            rememberEnterSubmit(target);
+            emitDom('submit', target, {
+              mode: 'enter',
+              key: 'Enter',
+              shiftKey: Boolean(event.shiftKey),
+            });
+          }, true);
           document.addEventListener('submit', (event) => {
             const target = event?.target;
             if (!target || !(target instanceof HTMLElement)) return;
+            flushQueuedInput(document.activeElement, 'submit');
+            if (shouldSkipNativeSubmit(target)) return;
             emitDom('submit', target, {});
           }, true);
 
