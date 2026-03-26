@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   BadgeInfo,
@@ -35,7 +35,38 @@ export function TeachingTimeline({
   variant,
   highlightedItemIds = [],
 }: TeachingTimelineProps) {
+  const scrollRef = useRef<HTMLDivElement | null>(null);
   const highlightedIds = new Set(highlightedItemIds);
+  const [followLatest, setFollowLatest] = useState(true);
+
+  useEffect(() => {
+    if (variant !== "processing") {
+      setFollowLatest(true);
+    }
+  }, [variant]);
+
+  useEffect(() => {
+    if (variant !== "processing" || !followLatest) return;
+    const element = scrollRef.current;
+    if (!element) return;
+    element.scrollTop = element.scrollHeight;
+  }, [items.length, followLatest, variant]);
+
+  const handleScroll = () => {
+    if (variant !== "processing") return;
+    const element = scrollRef.current;
+    if (!element) return;
+    const nearBottom =
+      element.scrollHeight - element.scrollTop - element.clientHeight < 24;
+    setFollowLatest(nearBottom);
+  };
+
+  const jumpToLatest = () => {
+    const element = scrollRef.current;
+    if (!element) return;
+    element.scrollTop = element.scrollHeight;
+    setFollowLatest(true);
+  };
 
   if (!items.length) {
     return (
@@ -49,7 +80,7 @@ export function TeachingTimeline({
     );
   }
 
-  return (
+  const timelineContent = (
     <div className="relative space-y-2.5">
       <div className="absolute left-4 top-1 h-full w-px bg-[linear-gradient(180deg,color-mix(in_srgb,var(--theme-accent)_45%,transparent)_0%,transparent_100%)]" />
       {items.map((item) => {
@@ -132,6 +163,31 @@ export function TeachingTimeline({
             ? "AI 会按时间顺序追加可理解的处理日志，不显示模型内部思维文本。"
             : "用户备注和操作痕迹会按时间顺序混排。"}
       </div>
+    </div>
+  );
+
+  if (variant !== "processing") {
+    return timelineContent;
+  }
+
+  return (
+    <div className="relative">
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="max-h-[340px] overflow-y-auto pr-1"
+      >
+        {timelineContent}
+      </div>
+      {!followLatest && items.length > 2 ? (
+        <button
+          type="button"
+          onClick={jumpToLatest}
+          className="absolute bottom-3 right-3 rounded-full border border-[color:var(--field-border-strong)] bg-[var(--theme-accent)] px-3 py-1.5 text-[11px] font-semibold text-white shadow-[0_10px_20px_rgba(15,118,110,0.18)] transition-colors hover:brightness-95"
+        >
+          回到最新
+        </button>
+      ) : null}
     </div>
   );
 }

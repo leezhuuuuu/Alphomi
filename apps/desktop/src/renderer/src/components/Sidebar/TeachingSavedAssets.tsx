@@ -82,6 +82,9 @@ export function TeachingSavedAssets({
               来源页面：{selectedAsset.sourceTitle}
             </div>
           ) : null}
+          <div className="mt-2 text-[11px] leading-5 text-[color:var(--text-tertiary)]">
+            当前是手动浏览视图。看完后可以返回教学界面，继续对照这份流程。
+          </div>
         </div>
 
         <div className="space-y-3">
@@ -131,13 +134,13 @@ export function TeachingSavedAssets({
           </div>
           <div>
             <div className="text-[10px] uppercase tracking-[0.16em] text-[color:var(--text-tertiary)]">
-              Saved teachings
+              已保存教学
             </div>
             <div className="mt-1 text-[15px] font-semibold text-[color:var(--text-primary)]">
               手动查看曾经保存过的教学
             </div>
             <div className="mt-1 text-[12px] leading-5 text-[color:var(--text-secondary)]">
-              这里展示已经保存下来的教学流程。你可以先浏览列表，再点开查看阶段卡片详情。
+              这里展示已经保存下来的教学流程。你可以先浏览列表，再点开查看阶段卡片详情，随后返回教学界面继续参考。
             </div>
           </div>
         </div>
@@ -184,6 +187,9 @@ export function TeachingSavedAssets({
                       <Layers3 size={12} />
                       {asset.cardCount} 个阶段
                     </span>
+                  </div>
+                  <div className="mt-2 text-[11px] leading-5 text-[color:var(--text-tertiary)]">
+                    点开后可查看保存下来的阶段卡片详情。
                   </div>
                 </div>
               </div>
