@@ -667,7 +667,60 @@ class TeachingCaptureController {
           };
 
           const inputTimers = new WeakMap();
+          const pendingInputTargets = new Set();
           const recentEnterSubmits = new WeakMap();
+          const multilineSubmitTimers = new WeakMap();
+          const submitLabelPattern = /^(post|save|submit|confirm|apply|create|update|publish|send|done|ok|reply|comment|search|go|continue|next)$/i;
+
+          const readTargetValue = (target) => {
+            if (!target || !(target instanceof HTMLElement)) return '';
+            if ('value' in target && typeof target.value === 'string') {
+              return clean(target.value, 400);
+            }
+            if (target.isContentEditable) {
+              return clean(target.innerText || target.textContent || '', 400);
+            }
+            return clean(target.textContent || '', 400);
+          };
+
+          const getElementLabel = (element) => {
+            if (!element || !(element instanceof HTMLElement)) return '';
+            const parts = [
+              clean(element.getAttribute('aria-label'), 120),
+              clean(element.getAttribute('value'), 120),
+              clean(element.innerText || element.textContent || '', 120),
+              clean(element.getAttribute('title'), 120),
+              clean(element.getAttribute('name'), 80),
+              clean(element.getAttribute('id'), 80),
+            ].filter(Boolean);
+            return parts[0] || '';
+          };
+
+          const findSubmitCandidates = (target) => {
+            if (!target || !(target instanceof HTMLElement)) return [];
+            const selectors = 'button, input[type="submit"], input[type="button"], [role="button"], a[role="button"]';
+            const candidates = [];
+            const roots = [];
+            let cursor = target.closest('form,[role="form"],[role="search"]') || target.parentElement;
+            while (cursor && roots.length < 4) {
+              roots.push(cursor);
+              cursor = cursor.parentElement;
+            }
+
+            for (const root of roots) {
+              const nodes = Array.from(root.querySelectorAll(selectors));
+              for (const node of nodes) {
+                const label = getElementLabel(node);
+                if (!label || !submitLabelPattern.test(label)) continue;
+                if (!candidates.includes(label)) {
+                  candidates.push(label);
+                }
+                if (candidates.length >= 4) return candidates;
+              }
+            }
+
+            return candidates;
+          };
 
           const isSingleLineInput = (target) => {
             if (!target || !(target instanceof HTMLElement)) return false;
@@ -679,6 +732,15 @@ class TeachingCaptureController {
             if (target.isContentEditable) {
               const multiline = clean(target.getAttribute('aria-multiline'), 10).toLowerCase();
               return multiline !== 'true';
+            }
+            return false;
+          };
+
+          const isMultilineComposer = (target) => {
+            if (!target || !(target instanceof HTMLElement)) return false;
+            if (target instanceof HTMLTextAreaElement) return true;
+            if (target.isContentEditable) {
+              return true;
             }
             return false;
           };
@@ -696,6 +758,15 @@ class TeachingCaptureController {
             return Date.now() - submittedAt < 800;
           };
 
+          const clearMultilineProbe = (target) => {
+            if (!target || !(target instanceof HTMLElement)) return;
+            const timer = multilineSubmitTimers.get(target);
+            if (timer) {
+              window.clearTimeout(timer);
+              multilineSubmitTimers.delete(target);
+            }
+          };
+
           const flushQueuedInput = (target, fallbackMode = '') => {
             if (!target || !(target instanceof HTMLElement)) return;
             const queued = inputTimers.get(target);
@@ -706,6 +777,13 @@ class TeachingCaptureController {
               flushed: true,
             });
             inputTimers.delete(target);
+            pendingInputTargets.delete(target);
+          };
+
+          const flushAllQueuedInputs = (fallbackMode = '') => {
+            for (const target of Array.from(pendingInputTargets)) {
+              flushQueuedInput(target, fallbackMode);
+            }
           };
 
           const queueInput = (event) => {
@@ -720,6 +798,7 @@ class TeachingCaptureController {
                 mode: event.inputType || event.data || '',
               });
               inputTimers.delete(target);
+              pendingInputTargets.delete(target);
             }, delay);
 
             inputTimers.set(target, {
@@ -727,11 +806,53 @@ class TeachingCaptureController {
               kind: event.type === 'input' ? 'input' : 'change',
               mode: event.inputType || event.data || '',
             });
+            pendingInputTargets.add(target);
+          };
+
+          const queueMultilineSubmitProbe = (target, extra = {}) => {
+            if (!target || !(target instanceof HTMLElement)) return;
+            const submitCandidates = findSubmitCandidates(target);
+            if (submitCandidates.length === 0) return;
+
+            const probeTarget = target.closest('form') || target;
+            clearMultilineProbe(probeTarget);
+            const beforeUrl = location.href;
+            const beforeTitle = document.title;
+            const beforeValue = readTargetValue(target);
+            const beforeBodySnippet = clean(document.body?.innerText || '', 1000);
+
+            const timer = window.setTimeout(() => {
+              multilineSubmitTimers.delete(probeTarget);
+              const afterValue = readTargetValue(target);
+              const afterBodySnippet = clean(document.body?.innerText || '', 1000);
+              const navigationChanged = location.href !== beforeUrl || document.title !== beforeTitle;
+              const cleared = Boolean(beforeValue.trim()) && afterValue.trim() === '';
+              const removed = !target.isConnected;
+              const bodyChanged = beforeBodySnippet !== afterBodySnippet;
+              const focusChanged = document.activeElement !== target;
+              const shortened =
+                beforeValue.trim().length > 0 &&
+                afterValue.trim().length > 0 &&
+                afterValue.trim().length <= Math.floor(beforeValue.trim().length / 2);
+
+              if (!(navigationChanged || cleared || removed || (focusChanged && bodyChanged) || shortened)) {
+                return;
+              }
+
+              emitDom('submit', target, {
+                mode: 'enter_probe',
+                submitCandidates: submitCandidates.join(', '),
+                ...extra,
+              });
+            }, 180);
+
+            multilineSubmitTimers.set(probeTarget, timer);
           };
 
           document.addEventListener('click', (event) => {
             const target = event?.target;
             if (!target || !(target instanceof HTMLElement)) return;
+            flushAllQueuedInputs('click');
             emitDom('click', target, {
               button: event.button,
             });
@@ -743,21 +864,31 @@ class TeachingCaptureController {
             const target = event?.target;
             if (!target || !(target instanceof HTMLElement)) return;
             if (event.key !== 'Enter' || event.isComposing) return;
-            if (!isSingleLineInput(target)) return;
-            if (target instanceof HTMLTextAreaElement && event.shiftKey) return;
+            if (event.shiftKey) return;
+            if (event.altKey || event.ctrlKey || event.metaKey) return;
 
+            if (isSingleLineInput(target)) {
+              flushQueuedInput(target, 'enter');
+              rememberEnterSubmit(target);
+              emitDom('submit', target, {
+                mode: 'enter',
+                key: 'Enter',
+                shiftKey: Boolean(event.shiftKey),
+              });
+              return;
+            }
+
+            if (!isMultilineComposer(target)) return;
             flushQueuedInput(target, 'enter');
-            rememberEnterSubmit(target);
-            emitDom('submit', target, {
-              mode: 'enter',
+            queueMultilineSubmitProbe(target, {
               key: 'Enter',
-              shiftKey: Boolean(event.shiftKey),
             });
           }, true);
           document.addEventListener('submit', (event) => {
             const target = event?.target;
             if (!target || !(target instanceof HTMLElement)) return;
-            flushQueuedInput(document.activeElement, 'submit');
+            flushAllQueuedInputs('submit');
+            clearMultilineProbe(target.closest('form') || target);
             if (shouldSkipNativeSubmit(target)) return;
             emitDom('submit', target, {});
           }, true);
